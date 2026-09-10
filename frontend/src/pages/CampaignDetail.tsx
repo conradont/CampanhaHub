@@ -7,6 +7,16 @@ import { ChevronLeft, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -75,6 +85,7 @@ export function CampaignDetailPage() {
   const [metricOpen, setMetricOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ kind: "metric" | "content" | "expense"; id: number; title: string } | null>(null)
 
   const metricForm = useForm<MetricValues>({
     resolver: zodResolver(metricSchema),
@@ -149,36 +160,19 @@ export function CampaignDetailPage() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
-
-  async function removeMetric(metricId: number) {
-    try {
-      await metricsApi.remove(metricId)
+  const deleteMutation = useMutation({
+    mutationFn: async (item: { kind: "metric" | "content" | "expense"; id: number }) => {
+      if (item.kind === "metric") await metricsApi.remove(item.id)
+      else if (item.kind === "content") await contentsApi.remove(item.id)
+      else await expensesApi.remove(item.id)
+    },
+    onSuccess: (_, item) => {
       invalidateCampaign()
-      toast.success("Métrica excluída.")
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    }
-  }
-
-  async function removeContent(contentId: number) {
-    try {
-      await contentsApi.remove(contentId)
-      invalidateCampaign()
-      toast.success("Conteúdo excluído.")
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    }
-  }
-
-  async function removeExpense(expenseId: number) {
-    try {
-      await expensesApi.remove(expenseId)
-      invalidateCampaign()
-      toast.success("Investimento excluído.")
-    } catch (error) {
-      toast.error(getErrorMessage(error))
-    }
-  }
+      toast.success(item.kind === "metric" ? "Métrica excluída." : item.kind === "content" ? "Conteúdo excluído." : "Investimento excluído.")
+      setPendingDelete(null)
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
 
   if (isLoading || !summary) return <PageSkeleton />
   const { campaign, totals, indicators } = summary
@@ -190,8 +184,8 @@ export function CampaignDetailPage() {
           <Link to="/campanhas" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="size-4" /> Campanhas
           </Link>
-          <h1 className="font-heading text-3xl font-medium">{campaign.name}</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="font-heading text-[34px] leading-9 font-bold tracking-[0.02em]">{campaign.name}</h1>
+          <p className="mt-2 text-[14px] leading-[21px] text-[#7a7c84]">
             {campaign.client?.name} · {campaign.platform?.name} · {campaign.objective || "Sem objetivo informado"}
           </p>
         </div>
@@ -225,21 +219,37 @@ export function CampaignDetailPage() {
           <TabsTrigger value="despesas">Investimentos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="metricas" className="rounded-lg border bg-card p-4">
+        <TabsContent value="metricas" className="rounded-[12px] border bg-card p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl">Métricas manuais</h2>
-            <Button
-              onClick={() => {
-                metricForm.reset(emptyMetric(campaignId))
-                setMetricOpen(true)
-              }}
-            >
-              Registrar métricas
-            </Button>
+            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Métricas manuais</h2>
+            {metrics.length > 0 ? (
+              <Button
+                onClick={() => {
+                  metricForm.reset(emptyMetric(campaignId))
+                  setMetricOpen(true)
+                }}
+              >
+                Registrar métricas
+              </Button>
+            ) : null}
           </div>
           {metrics.length === 0 ? (
-            <EmptyState title="Sem métricas" text="Insira alcance, impressões, cliques e conversões manualmente." />
+            <EmptyState
+              title="Sem métricas"
+              text="Insira alcance, impressões, cliques e conversões manualmente."
+              action={
+                <Button
+                  onClick={() => {
+                    metricForm.reset(emptyMetric(campaignId))
+                    setMetricOpen(true)
+                  }}
+                >
+                  Registrar métricas
+                </Button>
+              }
+            />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -266,7 +276,12 @@ export function CampaignDetailPage() {
                     <TableCell className="text-right font-mono">{metric.indicators?.cpc != null ? money(metric.indicators.cpc) : "—"}</TableCell>
                     <TableCell className="text-right font-mono">{percent(metric.indicators?.ctr)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" aria-label="Excluir métrica" onClick={() => removeMetric(metric.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Excluir métrica"
+                        onClick={() => setPendingDelete({ kind: "metric", id: metric.id, title: formatDate(metric.date) })}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     </TableCell>
@@ -274,24 +289,41 @@ export function CampaignDetailPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="conteudos" className="rounded-lg border bg-card p-4">
+        <TabsContent value="conteudos" className="rounded-[12px] border bg-card p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl">Planejamento de conteúdos</h2>
-            <Button
-              onClick={() => {
-                contentForm.reset(emptyContent(campaignId))
-                setContentOpen(true)
-              }}
-            >
-              Novo conteúdo
-            </Button>
+            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Planejamento de conteúdos</h2>
+            {contents.length > 0 ? (
+              <Button
+                onClick={() => {
+                  contentForm.reset(emptyContent(campaignId))
+                  setContentOpen(true)
+                }}
+              >
+                Novo conteúdo
+              </Button>
+            ) : null}
           </div>
           {contents.length === 0 ? (
-            <EmptyState title="Nenhum conteúdo" text="Planeje posts, reels e anúncios com data prevista." />
+            <EmptyState
+              title="Nenhum conteúdo"
+              text="Planeje posts, reels e anúncios com data prevista."
+              action={
+                <Button
+                  onClick={() => {
+                    contentForm.reset(emptyContent(campaignId))
+                    setContentOpen(true)
+                  }}
+                >
+                  Novo conteúdo
+                </Button>
+              }
+            />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -315,7 +347,12 @@ export function CampaignDetailPage() {
                       <StatusBadge status={content.status} />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" aria-label="Excluir conteúdo" onClick={() => removeContent(content.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Excluir conteúdo"
+                        onClick={() => setPendingDelete({ kind: "content", id: content.id, title: content.title })}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     </TableCell>
@@ -323,24 +360,41 @@ export function CampaignDetailPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </TabsContent>
 
-        <TabsContent value="despesas" className="rounded-lg border bg-card p-4">
+        <TabsContent value="despesas" className="rounded-[12px] border bg-card p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl">Investimentos e despesas</h2>
-            <Button
-              onClick={() => {
-                expenseForm.reset(emptyExpense(campaignId))
-                setExpenseOpen(true)
-              }}
-            >
-              Registrar investimento
-            </Button>
+            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Investimentos e despesas</h2>
+            {expenses.length > 0 ? (
+              <Button
+                onClick={() => {
+                  expenseForm.reset(emptyExpense(campaignId))
+                  setExpenseOpen(true)
+                }}
+              >
+                Registrar investimento
+              </Button>
+            ) : null}
           </div>
           {expenses.length === 0 ? (
-            <EmptyState title="Nenhum investimento" text="Registre gastos de mídia, produção ou ferramentas." />
+            <EmptyState
+              title="Nenhum investimento"
+              text="Registre gastos de mídia, produção ou ferramentas."
+              action={
+                <Button
+                  onClick={() => {
+                    expenseForm.reset(emptyExpense(campaignId))
+                    setExpenseOpen(true)
+                  }}
+                >
+                  Registrar investimento
+                </Button>
+              }
+            />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -359,7 +413,12 @@ export function CampaignDetailPage() {
                     <TableCell>{expense.category}</TableCell>
                     <TableCell className="text-right font-mono">{money(expense.amount)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" aria-label="Excluir investimento" onClick={() => removeExpense(expense.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Excluir investimento"
+                        onClick={() => setPendingDelete({ kind: "expense", id: expense.id, title: expense.description })}
+                      >
                         <Trash2 className="size-4" />
                       </Button>
                     </TableCell>
@@ -367,6 +426,7 @@ export function CampaignDetailPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </TabsContent>
       </Tabs>
@@ -494,6 +554,39 @@ export function CampaignDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(next) => !next && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingDelete?.kind === "metric"
+                ? "Excluir métrica?"
+                : pendingDelete?.kind === "content"
+                  ? "Excluir conteúdo?"
+                  : "Excluir investimento?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? pendingDelete.kind === "metric"
+                  ? `O registro de ${pendingDelete.title} será excluído.`
+                  : pendingDelete.kind === "content"
+                    ? `O conteúdo “${pendingDelete.title}” será excluído.`
+                    : `O investimento “${pendingDelete.title}” será excluído.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => pendingDelete && deleteMutation.mutate(pendingDelete)}
+            >
+              {deleteMutation.isPending ? "Excluindo…" : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

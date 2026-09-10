@@ -54,6 +54,42 @@ def _bucket_label(key: str, grain: str) -> str:
     return f"{MONTH_LABELS[int(month) - 1]} {year}"
 
 
+def previous_period(start: date | None, end: date | None) -> tuple[date | None, date | None]:
+    if not start or not end:
+        return None, None
+    span = (end - start).days + 1
+    prev_end = start - timedelta(days=1)
+    prev_start = prev_end - timedelta(days=span - 1)
+    return prev_start, prev_end
+
+
+def _delta_percent(current: float | None, previous: float | None) -> float | None:
+    if current is None or previous is None or previous == 0:
+        return None
+    return round(((current - previous) / abs(previous)) * 100, 1)
+
+
+def _snapshot(metrics: list[Metric], expenses: list[Expense]) -> dict:
+    investment = sum(metric.investment for metric in metrics) + sum(expense.amount for expense in expenses)
+    clicks = sum(metric.clicks for metric in metrics)
+    conversions = sum(metric.conversions for metric in metrics)
+    impressions = sum(metric.impressions for metric in metrics)
+    return {
+        "total_investment": investment,
+        "total_clicks": clicks,
+        "total_conversions": conversions,
+        "average_ctr": calc_ctr(clicks, impressions),
+        "average_cpc": calc_cpc(investment, clicks),
+    }
+
+
+def _comparison(current: dict, previous: dict) -> dict:
+    return {
+        key: {"previous": previous[key], "delta_percent": _delta_percent(current[key], previous[key])}
+        for key in current
+    }
+
+
 def build_dashboard(
     db: Session,
     user: User,
@@ -83,10 +119,13 @@ def build_dashboard(
     campaign_ids = [campaign.id for campaign in campaigns]
     campaign_map = {campaign.id: campaign for campaign in campaigns}
 
-    metrics = db.query(Metric).filter(Metric.campaign_id.in_(campaign_ids)).all() if campaign_ids else []
-    expenses = db.query(Expense).filter(Expense.campaign_id.in_(campaign_ids)).all() if campaign_ids else []
-    metrics = [metric for metric in metrics if _in_range(metric.date, start_date, end_date)]
-    expenses = [expense for expense in expenses if _in_range(expense.date, start_date, end_date)]
+    all_metrics = db.query(Metric).filter(Metric.campaign_id.in_(campaign_ids)).all() if campaign_ids else []
+    all_expenses = db.query(Expense).filter(Expense.campaign_id.in_(campaign_ids)).all() if campaign_ids else []
+    metrics = [metric for metric in all_metrics if _in_range(metric.date, start_date, end_date)]
+    expenses = [expense for expense in all_expenses if _in_range(expense.date, start_date, end_date)]
+    prev_start, prev_end = previous_period(start_date, end_date)
+    previous_metrics = [metric for metric in all_metrics if _in_range(metric.date, prev_start, prev_end)] if prev_start else []
+    previous_expenses = [expense for expense in all_expenses if _in_range(expense.date, prev_start, prev_end)] if prev_start else []
 
     totals = {
         "reach": sum(metric.reach for metric in metrics),
@@ -186,13 +225,17 @@ def build_dashboard(
         )
     campaign_rows.sort(key=lambda row: row["conversions"], reverse=True)
 
-    overview = {
-        "total_campaigns": len(campaigns),
+    current_snapshot = {
         "total_investment": totals["investment"],
-        "total_conversions": totals["conversions"],
         "total_clicks": totals["clicks"],
+        "total_conversions": totals["conversions"],
         "average_ctr": indicators["ctr"],
         "average_cpc": indicators["cpc"],
+    }
+    overview = {
+        "total_campaigns": len(campaigns),
+        **current_snapshot,
+        "comparison": _comparison(current_snapshot, _snapshot(previous_metrics, previous_expenses)) if prev_start else None,
     }
 
     return {

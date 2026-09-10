@@ -22,12 +22,12 @@ import { compactMoney, money, number, percent } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { DashboardCampaignRow, DashboardEvolutionPoint, DashboardPlatformRow } from "@/types"
 
-export const chartBrand = "#c2410c"
-export const chartMuted = "#78716c"
+export const chartBrand = "#fc4c02"
+export const chartMuted = "#7a7c84"
 export const chartGrid = "var(--border)"
-export const chartFill = "rgba(194, 65, 12, 0.18)"
+export const chartFill = "rgba(252, 76, 2, 0.18)"
 
-const chartTones = ["#9a3412", "#c2410c", "#d45a28", "#e07a4c", "#ea9a78", "#f0b496"] as const
+const chartTones = ["#fc4c02", "#ff5a14", "#ff7a3c", "#2dbe60", "#7a7c84", "#ffb08a"] as const
 
 function chartTone(index: number) {
   return chartTones[index % chartTones.length]
@@ -56,7 +56,7 @@ function ChartCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="uppercase tracking-[0.06em]">{title}</CardTitle>
         <CardDescription>{question}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,7 +81,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
+    <div className="rounded-[10px] border bg-[#0f1014] px-3 py-2 text-sm shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
       <p className="mb-1 font-medium">{String(label ?? "")}</p>
       {payload.map((entry) => (
         <p key={String(entry.dataKey)} className="font-mono text-xs text-muted-foreground">
@@ -144,7 +144,7 @@ export function CtrChart({ data }: { data: DashboardEvolutionPoint[] }) {
 
 export function PlatformInvestmentChart({ data }: { data: DashboardPlatformRow[] }) {
   return (
-    <ChartCard title="Investimento por plataforma" question="Onde o orçamento está sendo utilizado?" empty={data.length === 0}>
+    <ChartCard title="Investimento por canal" question="Onde o orçamento está sendo utilizado?" empty={data.length === 0}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} layout="vertical" margin={{ left: 12, right: 12 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />

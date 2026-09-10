@@ -46,6 +46,23 @@ def test_dashboard_uses_mock_dataset(mock_user):
     overview = client.get("/api/dashboard/overview?period=all", headers=headers)
     assert overview.status_code == 200
     assert overview.json()["total_conversions"] == seeded.total_conversions
+    assert overview.json()["comparison"] is None
+
+
+def test_dashboard_compares_previous_period(mock_user):
+    headers = mock_user["headers"]
+    body = client.get("/api/dashboard?period=30d", headers=headers).json()
+
+    assert body["filters"]["period"] == "30d"
+    assert body["overview"]["comparison"] is not None
+    comparison = body["overview"]["comparison"]
+    assert "delta_percent" in comparison["total_investment"]
+    assert "previous" in comparison["average_ctr"]
+    assert "previous" in comparison["average_cpc"]
+
+    ninety = client.get("/api/dashboard?period=90d", headers=headers).json()
+    assert ninety["overview"]["comparison"] is not None
+    assert ninety["overview"]["total_investment"] >= body["overview"]["total_investment"]
 
 
 def test_metric_indicators_from_mock_payload(mock_user):

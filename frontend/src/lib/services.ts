@@ -45,6 +45,7 @@ export const contentsApi = {
   list: async (params: Record<string, string | number | undefined>) =>
     (await api.get<Content[]>("/contents", { params })).data,
   create: async (body: ContentValues) => (await api.post<Content>("/contents", body)).data,
+  update: async (id: number, body: ContentValues) => (await api.put<Content>(`/contents/${id}`, body)).data,
   remove: async (id: number) => {
     await api.delete(`/contents/${id}`)
   },

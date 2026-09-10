@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,9 +25,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, RowMenu, StatusBadge } from "@/components/shared"
+import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, RowMenu, SearchField, StatusBadge } from "@/components/shared"
 import { getErrorMessage } from "@/lib/api"
 import { formatDate, money, STATUS_LABELS, todayISO } from "@/lib/format"
+import { compareValues, matchesSearch, type SortState } from "@/lib/list"
 import { queryKeys } from "@/lib/query-keys"
 import { campaignSchema, type CampaignValues } from "@/lib/schemas"
 import { campaignsApi, clientsApi, platformsApi } from "@/lib/services"
@@ -51,6 +53,8 @@ function emptyCampaign(clientId = 0, platformId = 0): CampaignValues {
 export function CampaignsPage() {
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState<(typeof filters)[number]>("todas")
+  const [query, setQuery] = useState("")
+  const [sort, setSort] = useState<SortState<"name" | "start" | "budget">>({ key: "start", dir: "desc" })
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Campaign | null>(null)
   const [toDelete, setToDelete] = useState<Campaign | null>(null)
@@ -92,11 +96,22 @@ export function CampaignsPage() {
     onError: (error) => toast.error(getErrorMessage(error)),
   })
 
+  const visible = useMemo(() => {
+    const filtered = items.filter((campaign) =>
+      matchesSearch([campaign.name, campaign.client?.name, campaign.platform?.name, campaign.objective], query),
+    )
+    return [...filtered].sort((left, right) => {
+      if (sort.key === "budget") return compareValues(left.budget, right.budget, sort.dir)
+      if (sort.key === "start") return compareValues(left.start_date, right.start_date, sort.dir)
+      return compareValues(left.name, right.name, sort.dir)
+    })
+  }, [items, query, sort])
+
   const canCreate = clients.length > 0 && platforms.length > 0
 
   function startCreate() {
     if (!canCreate) {
-      toast.error("Cadastre um cliente e uma plataforma antes de criar a campanha.")
+      toast.error("Cadastre um cliente e um canal antes de criar a campanha.")
       return
     }
     setEditing(null)
@@ -128,46 +143,122 @@ export function CampaignsPage() {
         title="Campanhas"
         description="Uma fila de trabalho — não um mural de cards coloridos."
         actions={
-          <Button size="lg" onClick={startCreate}>
-            Nova campanha
-          </Button>
+          canCreate ? (
+            <Button size="lg" onClick={startCreate}>
+              Nova campanha
+            </Button>
+          ) : (
+            <Button asChild size="lg">
+              <Link to={clients.length === 0 ? "/clientes" : "/plataformas"}>
+                {clients.length === 0 ? "Cadastrar cliente" : "Cadastrar canal"}
+              </Link>
+            </Button>
+          )
         }
       />
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        {filters.map((value) => (
-          <Button
-            key={value}
-            size="sm"
-            variant={filter === value ? "default" : "outline"}
-            onClick={() => setFilter(value)}
-          >
-            {value === "historico" ? "Histórico" : STATUS_LABELS[value] ?? "Todas"}
-          </Button>
-        ))}
+      <div className="mb-6 flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap gap-2">
+          {filters.map((value) => (
+            <Button
+              key={value}
+              size="sm"
+              variant={filter === value ? "default" : "outline"}
+              aria-pressed={filter === value}
+              onClick={() => setFilter(value)}
+            >
+              {value === "historico" ? "Histórico" : STATUS_LABELS[value] ?? "Todas"}
+            </Button>
+          ))}
+        </div>
+        {items.length > 0 ? (
+          <>
+            <SearchField value={query} onChange={setQuery} placeholder="Buscar campanha, cliente ou canal" />
+            <label className="grid min-w-44 gap-1">
+              <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Ordenar</span>
+              <NativeSelect
+                value={`${sort.key}:${sort.dir}`}
+                onChange={(event) => {
+                  const [key, dir] = event.target.value.split(":") as ["name" | "start" | "budget", "asc" | "desc"]
+                  setSort({ key, dir })
+                }}
+              >
+                <option value="start:desc">Início (recente)</option>
+                <option value="start:asc">Início (antigo)</option>
+                <option value="name:asc">Nome A–Z</option>
+                <option value="name:desc">Nome Z–A</option>
+                <option value="budget:desc">Maior orçamento</option>
+                <option value="budget:asc">Menor orçamento</option>
+              </NativeSelect>
+            </label>
+          </>
+        ) : null}
       </div>
 
       {items.length === 0 ? (
-        <EmptyState title="Nenhuma campanha" text="Crie uma campanha vinculada a um cliente e a uma plataforma." />
+        <EmptyState
+          title={filter === "todas" ? "Nenhuma campanha" : "Nada neste filtro"}
+          text={
+            filter !== "todas"
+              ? "Tente outro status ou veja a fila completa."
+              : canCreate
+                ? "Crie uma campanha vinculada a um cliente e a um canal."
+                : clients.length === 0
+                  ? "Cadastre o primeiro cliente para conseguir criar campanhas."
+                  : "Cadastre um canal antes de criar a campanha."
+          }
+          action={
+            filter !== "todas" ? (
+              <Button variant="outline" onClick={() => setFilter("todas")}>
+                Ver todas
+              </Button>
+            ) : canCreate ? (
+              <Button onClick={startCreate}>Nova campanha</Button>
+            ) : (
+              <Button asChild>
+                <Link to={clients.length === 0 ? "/clientes" : "/plataformas"}>
+                  {clients.length === 0 ? "Cadastrar cliente" : "Cadastrar canal"}
+                </Link>
+              </Button>
+            )
+          }
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          title={`Nada para “${query}”`}
+          text="Tente outro termo ou limpe a busca para ver a fila."
+          action={
+            <Button variant="outline" onClick={() => setQuery("")}>
+              Limpar busca
+            </Button>
+          }
+        />
       ) : (
         <div className="grid gap-3">
-          {items.map((campaign) => (
-            <article key={campaign.id} className="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-5">
-              <div>
-                <StatusBadge status={campaign.status} />
-                <h3 className="mt-2 font-heading text-xl">{campaign.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {campaign.client?.name} · {campaign.platform?.name}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatDate(campaign.start_date)}
-                  {campaign.end_date ? ` – ${formatDate(campaign.end_date)}` : ""} · {money(campaign.budget)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button asChild>
-                  <Link to={`/campanhas/${campaign.id}`}>Abrir</Link>
-                </Button>
+          {visible.map((campaign) => (
+            <article
+              key={campaign.id}
+              className="flex items-center gap-3 rounded-[12px] border bg-card transition-[border-color,background] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:border-[#7a7c84] hover:bg-white/[0.04]"
+            >
+              <Link
+                to={`/campanhas/${campaign.id}`}
+                aria-label={`Abrir ${campaign.name}`}
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4 rounded-lg p-5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <div className="min-w-0">
+                  <StatusBadge status={campaign.status} />
+                  <h3 className="mt-2 font-heading text-xl font-bold">{campaign.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {campaign.client?.name} · {campaign.platform?.name}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatDate(campaign.start_date)}
+                    {campaign.end_date ? ` – ${formatDate(campaign.end_date)}` : ""} · {money(campaign.budget)}
+                  </p>
+                </div>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              </Link>
+              <div className="pr-3">
                 <RowMenu onEdit={() => startEdit(campaign)} onDelete={() => setToDelete(campaign)} />
               </div>
             </article>
@@ -196,7 +287,7 @@ export function CampaignsPage() {
                 ))}
               </NativeSelect>
             </Field>
-            <Field label="Plataforma" error={form.formState.errors.platform_id?.message}>
+            <Field label="Canal" error={form.formState.errors.platform_id?.message}>
               <NativeSelect {...form.register("platform_id", { valueAsNumber: true })}>
                 {platforms.map((platform) => (
                   <option key={platform.id} value={platform.id}>

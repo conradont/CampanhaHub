@@ -148,6 +148,13 @@ export type DashboardData = {
     total_clicks: number
     average_ctr: number | null
     average_cpc: number | null
+    comparison: {
+      total_investment: { previous: number; delta_percent: number | null }
+      total_clicks: { previous: number; delta_percent: number | null }
+      total_conversions: { previous: number; delta_percent: number | null }
+      average_ctr: { previous: number | null; delta_percent: number | null }
+      average_cpc: { previous: number | null; delta_percent: number | null }
+    } | null
   }
   campaigns_total: number
   campaigns_active: number

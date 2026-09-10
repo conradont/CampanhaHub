@@ -2,7 +2,7 @@ import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,16 +12,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, StatusBadge } from "@/components/shared"
+import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton } from "@/components/shared"
 import { getErrorMessage } from "@/lib/api"
-import { CONTENT_TYPES, formatDate } from "@/lib/format"
+import { CONTENT_TYPES, formatDate, STATUS_LABELS } from "@/lib/format"
 import { queryKeys } from "@/lib/query-keys"
 import { contentSchema, type ContentValues } from "@/lib/schemas"
 import { campaignsApi, contentsApi } from "@/lib/services"
 import type { Content } from "@/types"
 import { cn } from "@/lib/utils"
+
+const STATUS_DOT: Record<string, string> = {
+  planejado: "bg-muted-foreground",
+  em_producao: "bg-primary",
+  publicado: "bg-[#2dbe60]",
+  cancelado: "bg-destructive",
+}
 
 function toLocalISO(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
@@ -33,15 +50,49 @@ function monthRange(year: number, month: number) {
   return { start: toLocalISO(start), end: toLocalISO(end), days: end.getDate(), firstWeekday: start.getDay() }
 }
 
+function weekdayLabel(iso: string) {
+  const [year, month, day] = iso.split("-").map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR", { weekday: "short" })
+}
+
+function ContentChip({ item, onOpen }: { item: Content; onOpen: (item: Content) => void }) {
+  const status = STATUS_LABELS[item.status] ?? item.status
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(item)}
+      title={`${item.title} · ${item.content_type} · ${status}`}
+      className="flex min-h-9 w-full items-start gap-1.5 rounded-[8px] px-1 py-1 text-left hover:bg-white/[0.06]"
+    >
+      <span
+        className={cn("mt-[7px] size-1.5 shrink-0 rounded-full", STATUS_DOT[item.status] ?? "bg-muted-foreground")}
+        aria-hidden
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[12px] leading-[16px] font-medium break-words whitespace-normal">
+          {item.title}
+        </span>
+        <span className="mt-0.5 block text-[10px] leading-[14px] font-semibold tracking-[0.06em] text-[#7a7c84] uppercase">
+          {item.content_type} · {status}
+        </span>
+      </span>
+    </button>
+  )
+}
+
 export function CalendarPage() {
   const queryClient = useQueryClient()
   const today = new Date()
+  const todayIso = toLocalISO(today)
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [open, setOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(toLocalISO(today))
+  const [editing, setEditing] = useState<Content | null>(null)
+  const [toDelete, setToDelete] = useState<Content | null>(null)
 
   const range = useMemo(() => monthRange(cursor.year, cursor.month), [cursor])
   const contentParams = { start: range.start, end: range.end }
+  const isCurrentMonth = cursor.year === today.getFullYear() && cursor.month === today.getMonth()
+  const defaultDate = isCurrentMonth ? todayIso : range.start
 
   const { data: contents = [], isLoading } = useQuery({
     queryKey: queryKeys.contents(contentParams),
@@ -58,20 +109,30 @@ export function CalendarPage() {
       campaign_id: 0,
       title: "",
       content_type: "post",
-      scheduled_date: selectedDate,
+      scheduled_date: defaultDate,
       status: "planejado",
       notes: "",
     },
   })
 
   const saveMutation = useMutation({
-    mutationFn: contentsApi.create,
+    mutationFn: (values: ContentValues) => (editing ? contentsApi.update(editing.id, values) : contentsApi.create(values)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contents"] })
-      toast.success("Peça planejada.")
+      toast.success(editing ? "Peça atualizada." : "Peça planejada.")
       setOpen(false)
-      form.setValue("title", "")
-      form.setValue("notes", "")
+      setEditing(null)
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => contentsApi.remove(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contents"] })
+      toast.success("Peça excluída.")
+      setToDelete(null)
+      setOpen(false)
+      setEditing(null)
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
@@ -93,12 +154,29 @@ export function CalendarPage() {
     cells.push({ date, day })
   }
 
-  function openFor(date: string) {
+  const agendaDays = useMemo(() => {
+    const days: Array<{ date: string; day: number; items: Content[] }> = []
+    for (let day = 1; day <= range.days; day += 1) {
+      const date = `${cursor.year}-${String(cursor.month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+      const items = byDate.get(date) ?? []
+      if (items.length > 0 || (isCurrentMonth && date === todayIso)) {
+        days.push({ date, day, items })
+      }
+    }
+    return days
+  }, [byDate, isCurrentMonth, range.days, cursor.year, cursor.month, todayIso])
+
+  function ensureCampaign() {
     if (campaigns.length === 0) {
       toast.error("Crie uma campanha antes de planejar conteúdos.")
-      return
+      return false
     }
-    setSelectedDate(date)
+    return true
+  }
+
+  function openCreate(date: string) {
+    if (!ensureCampaign()) return
+    setEditing(null)
     form.reset({
       campaign_id: form.getValues("campaign_id") || campaigns[0].id,
       title: "",
@@ -110,7 +188,26 @@ export function CalendarPage() {
     setOpen(true)
   }
 
+  function openEdit(item: Content) {
+    if (!ensureCampaign()) return
+    setEditing(item)
+    form.reset({
+      campaign_id: item.campaign_id,
+      title: item.title,
+      content_type: item.content_type,
+      scheduled_date: item.scheduled_date,
+      status: item.status as ContentValues["status"],
+      notes: item.notes ?? "",
+    })
+    setOpen(true)
+  }
+
+  function goToday() {
+    setCursor({ year: today.getFullYear(), month: today.getMonth() })
+  }
+
   const title = new Date(cursor.year, cursor.month, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+  const scheduledDate = form.watch("scheduled_date")
 
   if (isLoading) return <PageSkeleton />
 
@@ -120,10 +217,13 @@ export function CalendarPage() {
         title="Calendário"
         description="O que sai do forno esta semana."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="lg" onClick={goToday} aria-current={isCurrentMonth ? "date" : undefined}>
+              Hoje
+            </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="icon-lg"
               aria-label="Mês anterior"
               onClick={() =>
                 setCursor({
@@ -134,10 +234,10 @@ export function CalendarPage() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <strong className="min-w-36 text-center font-heading capitalize">{title}</strong>
+            <strong className="min-w-36 text-center font-heading text-lg font-bold tracking-[0.04em] uppercase">{title}</strong>
             <Button
               variant="outline"
-              size="icon"
+              size="icon-lg"
               aria-label="Próximo mês"
               onClick={() =>
                 setCursor({
@@ -152,44 +252,106 @@ export function CalendarPage() {
         }
       />
 
-      <div className="mb-4 grid grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border">
+      <div className="mb-4 hidden overflow-hidden rounded-[12px] border bg-border md:grid md:grid-cols-7 md:gap-px">
         {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => (
           <div key={label} className="bg-muted px-2 py-2 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
             {label}
           </div>
         ))}
         {cells.map((cell, index) => (
-          <button
+          <div
             key={index}
-            type="button"
-            disabled={!cell.date}
-            onClick={() => cell.date && openFor(cell.date)}
             className={cn(
-              "min-h-28 bg-card p-2 text-left align-top transition-colors hover:bg-accent disabled:pointer-events-none disabled:bg-muted/40",
-              cell.date === toLocalISO(today) && "ring-1 ring-primary ring-inset",
+              "flex min-h-36 min-w-0 flex-col bg-card p-2",
+              !cell.date && "bg-muted/40",
+              cell.date === todayIso && "ring-1 ring-primary ring-inset",
             )}
           >
-            <span className="font-mono text-sm">{cell.day}</span>
-            <div className="mt-2 grid gap-1">
-              {(byDate.get(cell.date ?? "") ?? []).map((item) => (
-                <small key={item.id} className="flex items-center gap-1 truncate text-xs">
-                  <StatusBadge status={item.status} />
-                  <span className="truncate">{item.title}</span>
-                </small>
-              ))}
-            </div>
-          </button>
+            {cell.date ? (
+              <>
+                <div className="flex items-center justify-between gap-1">
+                  <span className={cn("font-mono text-sm", cell.date === todayIso && "font-semibold text-primary")}>{cell.day}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9"
+                    aria-label={`Planejar em ${formatDate(cell.date)}`}
+                    onClick={() => openCreate(cell.date!)}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </div>
+                <div className="mt-1 grid min-w-0 gap-1">
+                  {(byDate.get(cell.date) ?? []).map((item) => (
+                    <ContentChip key={item.id} item={item} onOpen={openEdit} />
+                  ))}
+                </div>
+              </>
+            ) : null}
+          </div>
         ))}
       </div>
 
-      {contents.length === 0 ? <EmptyState title="Mês sem conteúdos" text="Clique em um dia para planejar uma publicação." /> : null}
+      <div className="mb-4 grid gap-3 md:hidden">
+        {contents.length > 0
+          ? agendaDays.map((day) => (
+              <section
+                key={day.date}
+                className={cn("rounded-[12px] border bg-card p-3", day.date === todayIso && "border-primary")}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-heading capitalize">
+                      {weekdayLabel(day.date)} {day.day}
+                    </p>
+                    {day.date === todayIso ? <p className="text-xs text-primary">Hoje</p> : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9"
+                    aria-label={`Planejar em ${formatDate(day.date)}`}
+                    onClick={() => openCreate(day.date)}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </div>
+                {day.items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma peça neste dia.</p>
+                ) : (
+                  <div className="grid gap-1">
+                    {day.items.map((item) => (
+                      <ContentChip key={item.id} item={item} onOpen={openEdit} />
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))
+          : null}
+      </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      {contents.length === 0 ? (
+        <EmptyState
+          title="Mês sem conteúdos"
+          text="Planeje a primeira peça deste mês em um clique."
+          action={<Button onClick={() => openCreate(defaultDate)}>Planejar peça</Button>}
+        />
+      ) : null}
+
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next) setEditing(null)
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Peça em {formatDate(selectedDate)}</DialogTitle>
+            <DialogTitle>{editing ? "Editar peça" : `Nova peça em ${formatDate(scheduledDate)}`}</DialogTitle>
           </DialogHeader>
-          <form id="calendar-form" className="grid gap-4" onSubmit={form.handleSubmit((values) => saveMutation.mutate({ ...values, scheduled_date: selectedDate }))}>
+          <form id="calendar-form" className="grid gap-4" onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}>
             <Field label="Campanha" error={form.formState.errors.campaign_id?.message}>
               <NativeSelect {...form.register("campaign_id", { valueAsNumber: true })}>
                 {campaigns.map((campaign) => (
@@ -201,6 +363,9 @@ export function CalendarPage() {
             </Field>
             <Field label="Título" error={form.formState.errors.title?.message}>
               <Input {...form.register("title")} />
+            </Field>
+            <Field label="Data prevista" error={form.formState.errors.scheduled_date?.message}>
+              <Input type="date" {...form.register("scheduled_date")} />
             </Field>
             <Field label="Tipo" error={form.formState.errors.content_type?.message}>
               <NativeSelect {...form.register("content_type")}>
@@ -223,7 +388,12 @@ export function CalendarPage() {
               <Textarea rows={3} {...form.register("notes")} />
             </Field>
           </form>
-          <DialogFooter>
+          <DialogFooter className={editing ? "sm:justify-between" : undefined}>
+            {editing ? (
+              <Button type="button" variant="destructive" className="mr-auto" onClick={() => setToDelete(editing)}>
+                Excluir
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
@@ -233,6 +403,23 @@ export function CalendarPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={Boolean(toDelete)} onOpenChange={(next) => !next && setToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir peça?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {toDelete ? `O conteúdo “${toDelete.title}” será excluído.` : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => toDelete && deleteMutation.mutate(toDelete.id)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

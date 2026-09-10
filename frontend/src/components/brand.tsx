@@ -1,0 +1,11 @@
+export function BrandMark({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="6" fill="#fc4c02" />
+      <path
+        fill="#0b0b0e"
+        d="M8.2 7.2h5.2c2.4 0 4.1 1.6 4.1 4.8s-1.7 4.8-4.1 4.8H8.2V7.2Zm2.2 2.1v5.4h2.8c1.3 0 2.1-.8 2.1-2.7s-.8-2.7-2.1-2.7H10.4Z"
+      />
+    </svg>
+  )
+}

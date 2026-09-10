@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -24,8 +24,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, RowMenu, StatusBadge } from "@/components/shared"
+import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, RowMenu, SearchField, SortButton, StatusBadge } from "@/components/shared"
 import { getErrorMessage } from "@/lib/api"
+import { compareValues, matchesSearch, toggleSort, type SortState } from "@/lib/list"
 import { queryKeys } from "@/lib/query-keys"
 import { clientSchema, type ClientValues } from "@/lib/schemas"
 import { clientsApi } from "@/lib/services"
@@ -43,6 +44,8 @@ const emptyClient: ClientValues = {
 export function ClientsPage() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const [sort, setSort] = useState<SortState<"name" | "segment" | "status">>({ key: "name", dir: "asc" })
   const [editing, setEditing] = useState<Client | null>(null)
   const [toDelete, setToDelete] = useState<Client | null>(null)
 
@@ -76,6 +79,13 @@ export function ClientsPage() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+
+  const visible = useMemo(() => {
+    const filtered = items.filter((client) =>
+      matchesSearch([client.name, client.segment, client.contact_email, client.contact_phone, client.description], query),
+    )
+    return [...filtered].sort((left, right) => compareValues(left[sort.key], right[sort.key], sort.dir))
+  }, [items, query, sort])
 
   function startCreate() {
     setEditing(null)
@@ -111,21 +121,48 @@ export function ClientsPage() {
       />
 
       {items.length === 0 ? (
-        <EmptyState title="Nenhum cliente ainda" text="Cadastre o primeiro cliente para começar a criar campanhas." />
+        <EmptyState
+          title="Nenhum cliente ainda"
+          text="Cadastre o primeiro cliente para começar a criar campanhas."
+          action={
+            <Button onClick={startCreate}>Novo cliente</Button>
+          }
+        />
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
+        <>
+          <div className="mb-4">
+            <SearchField value={query} onChange={setQuery} placeholder="Buscar nome, segmento ou contato" />
+          </div>
+          {visible.length === 0 ? (
+            <EmptyState
+              title={`Nada para “${query}”`}
+              text="Tente outro termo ou limpe a busca."
+              action={
+                <Button variant="outline" onClick={() => setQuery("")}>
+                  Limpar busca
+                </Button>
+              }
+            />
+          ) : (
+        <div className="overflow-hidden rounded-[12px] border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Segmento</TableHead>
+                <TableHead>
+                  <SortButton label="Nome" active={sort.key === "name"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "name"))} />
+                </TableHead>
+                <TableHead>
+                  <SortButton label="Segmento" active={sort.key === "segment"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "segment"))} />
+                </TableHead>
                 <TableHead>Contato</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>
+                  <SortButton label="Status" active={sort.key === "status"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "status"))} />
+                </TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((client) => (
+              {visible.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <strong>{client.name}</strong>
@@ -147,6 +184,8 @@ export function ClientsPage() {
             </TableBody>
           </Table>
         </div>
+          )}
+        </>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
