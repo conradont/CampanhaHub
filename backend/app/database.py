@@ -1,13 +1,30 @@
 from sqlalchemy import create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
 
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
-engine = create_engine(settings.database_url, connect_args=connect_args)
+def _engine_kwargs(database_url: str) -> dict:
+    url = make_url(database_url)
+    if url.get_backend_name() == "sqlite":
+        return {"connect_args": {"check_same_thread": False}}
+
+    connect_args: dict = {}
+    host = url.host or ""
+    if "sslmode" not in url.query and "supabase" in host:
+        connect_args["sslmode"] = "require"
+    if url.port == 6543 or "pooler.supabase.com" in host:
+        connect_args["prepare_threshold"] = None
+    return {
+        "connect_args": connect_args,
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 10,
+    }
+
+
+engine = create_engine(settings.sqlalchemy_database_url, **_engine_kwargs(settings.sqlalchemy_database_url))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

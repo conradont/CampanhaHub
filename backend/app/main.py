@@ -5,7 +5,18 @@ from app.config import settings
 from app.database import Base, engine
 from app.routers import auth, campaigns, clients, contents, dashboard, expenses, metrics, platforms, reports
 
-Base.metadata.create_all(bind=engine)
+
+def init_db() -> None:
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        raise SystemExit(
+            "Falha ao conectar no Postgres. No backend/.env, preencha DATABASE_PASSWORD "
+            "(Project Settings → Database). Sem a senha do banco a API não sobe."
+        ) from exc
+
+
+init_db()
 
 app = FastAPI(
     title=settings.app_name,

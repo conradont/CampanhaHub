@@ -78,6 +78,30 @@ python -m app.seed
 
 Entre com `conrado@campanhahub.dev` / `senha123`. O comando apaga os clientes/campanhas dessa conta e recarrega o conjunto mockado.
 
+## Banco no Supabase
+
+O FastAPI já grava a **senha em bcrypt** (`hashed_password`). Campanhas, métricas e clientes ficam em texto porque o painel precisa filtrar e somar esses valores. O disco do Supabase ainda cifra o banco em repouso.
+
+A integração GitHub/CLI lê `supabase/config.toml` e `supabase/migrations/` **na raiz do repositório**.
+
+1. Crie um projeto em [supabase.com/dashboard](https://supabase.com/dashboard).
+2. Em **Connect**, escolha **Session pooler** (porta `5432`, IPv4). Copie o **host exatamente** — não use `db.*.supabase.co` nem assuma `sa-east-1`.
+3. No `backend`, copie `.env.example` para `.env` e preencha `DATABASE_HOST`, `DATABASE_USER` (`postgres.PROJECT_REF`) e `DATABASE_PASSWORD`.
+4. Aplique as migrations:
+
+```bash
+npx supabase db push --yes --db-url "postgresql://postgres.PROJECT_REF:SENHA@HOST_DO_POOLER:5432/postgres?sslmode=require"
+```
+
+5. Confira a conexão:
+
+```bash
+cd backend
+.\.venv\Scripts\python.exe -m app.check_db
+```
+
+Depois suba a API normalmente. O cadastro continua salvando só o hash da senha; a senha em claro nunca vai para o Postgres.
+
 ## Docker (PostgreSQL)
 
 ```bash
@@ -111,4 +135,5 @@ O painel consome `GET /api/dashboard` com filtros de período, cliente, campanha
 ```
 backend/     API FastAPI
 frontend/    Interface React
+supabase/    config.toml e migrations (GitHub / CLI)
 ```
