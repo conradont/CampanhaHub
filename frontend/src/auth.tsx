@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { clearToken, getToken, setToken } from "@/lib/api"
+import { useQueryClient } from "@tanstack/react-query"
+import { clearToken, getToken, setToken, UNAUTHORIZED_EVENT } from "@/lib/api"
 import { authApi } from "@/lib/services"
 import type { LoginValues, RegisterValues } from "@/lib/schemas"
 import type { User } from "@/types"
@@ -15,8 +16,19 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      clearToken()
+      setUser(null)
+      queryClient.clear()
+    }
+    window.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized)
+  }, [queryClient])
 
   useEffect(() => {
     if (!getToken()) {
@@ -50,9 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout() {
         clearToken()
         setUser(null)
+        queryClient.clear()
       },
     }),
-    [user, loading],
+    [user, loading, queryClient],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

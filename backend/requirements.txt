@@ -8,4 +8,5 @@ PyJWT
 bcrypt
 psycopg[binary]
 httpx
+slowapi
 pytest

@@ -44,6 +44,7 @@ A primeira versão **não integra** Instagram, Facebook ou Google Ads: as métri
 | SQLAlchemy | Persistência |
 | SQLite / PostgreSQL | Banco (dev / produção) |
 | JWT | Autenticação |
+| slowapi | Rate limit (login, cadastro e API) |
 
 ## Como executar em desenvolvimento
 
@@ -58,6 +59,8 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 API e Swagger: http://127.0.0.1:8000/docs
+
+A API limita tentativas por IP: **5/min** no login, **3/min** no cadastro e **120/min** nas demais rotas. Em testes o limite fica desligado (`RATE_LIMIT_ENABLED=false`). Em produção, se houver proxy, o IP vem de `X-Forwarded-For`.
 
 ### 2. Front-end
 

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { Megaphone, Wallet } from "lucide-react"
 import { FilterPill } from "@/components/shared"
+import { useCountUp } from "@/hooks/use-count-up"
 import { money, number } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { Campaign, DashboardCampaignRow } from "@/types"
@@ -30,6 +31,7 @@ export function CampaignHero({
           name: campaigns.find((campaign) => campaign.id === selectedId)?.name ?? "Campanha",
           id: selectedId,
         }
+  const animatedAmount = useCountUp(amount)
 
   return (
     <section className="flex h-full flex-col gap-4">
@@ -40,7 +42,6 @@ export function CampaignHero({
         <div aria-hidden className="absolute top-2 -right-3 h-full w-full rounded-2xl border border-edge bg-surface-raised opacity-40" />
         <div aria-hidden className="absolute top-1 -right-1.5 h-full w-full rounded-2xl border border-edge bg-surface-raised opacity-70" />
         <div
-          key={selectedId ?? "all"}
           className="relative flex h-full min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border border-edge p-6 animate-[fadeInUp_400ms_ease]"
           style={{ background: "linear-gradient(135deg, #3a2f0a 0%, #1b201d 55%, #141816 100%)" }}
         >
@@ -53,7 +54,7 @@ export function CampaignHero({
           ) : (
             <>
               <span className="eyebrow text-brand">Investimento acumulado</span>
-              <span className="font-rounded text-4xl font-bold tracking-tight text-fg tabular-nums">{money(amount)}</span>
+              <span className="font-rounded text-4xl font-bold tracking-tight text-fg tabular-nums">{money(animatedAmount)}</span>
               <div className="flex items-end justify-between gap-4">
                 <span className="font-mono text-sm tracking-widest text-fg-muted">{maskedNumber(selected.id)}</span>
                 <span className="max-w-[45%] truncate text-sm font-medium text-fg">{selected.name}</span>

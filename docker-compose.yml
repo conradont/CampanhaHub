@@ -19,6 +19,7 @@ services:
       DATABASE_URL: postgresql+psycopg://campanhahub:campanhahub@db:5432/campanhahub
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
       SECRET_KEY: altere-esta-chave-em-producao
+      RATE_LIMIT_ENABLED: "true"
     ports:
       - "8000:8000"
     depends_on:

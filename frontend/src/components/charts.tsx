@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import { LineChart } from "lucide-react"
 import {
   Area,
@@ -7,6 +7,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Line,
   LineChart as RechartsLine,
   Pie,
@@ -17,9 +18,10 @@ import {
   YAxis,
 } from "recharts"
 import { EmptyState } from "@/components/shared"
+import { fillEvolutionGaps } from "@/lib/evolution"
 import { compactMoney, money, number, percent } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { DashboardCampaignRow, DashboardEvolutionPoint, DashboardPlatformRow } from "@/types"
+import type { DashboardCampaignRow, DashboardData, DashboardEvolutionPoint, DashboardPlatformRow } from "@/types"
 
 export const chartBrand = "#3fcf5f"
 export const chartMuted = "#9ba5a0"
@@ -94,10 +96,13 @@ const axis = { fontSize: 12, fill: chartMuted }
 export function InvestmentHistoryChart({
   data,
   loading,
+  range,
 }: {
   data: DashboardEvolutionPoint[]
   loading?: boolean
+  range?: Pick<DashboardData["filters"], "start" | "end" | "grain">
 }) {
+  const series = useMemo(() => fillEvolutionGaps(data, range), [data, range])
   return (
     <section className="flex h-full flex-col gap-4 rounded-2xl border border-edge bg-surface p-6">
       <div className="flex flex-col gap-1">
@@ -106,12 +111,12 @@ export function InvestmentHistoryChart({
       </div>
       {loading ? (
         <div className="min-h-44 flex-1 animate-pulse rounded-xl bg-surface-raised" />
-      ) : data.length === 0 ? (
+      ) : series.length === 0 ? (
         <p className="flex min-h-44 flex-1 items-center justify-center text-sm text-fg-muted">Sem série neste recorte.</p>
       ) : (
         <div className="min-h-44 flex-1">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+            <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
               <defs>
                 <linearGradient id="investment-fill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={chartBrand} stopOpacity={0.35} />
@@ -160,6 +165,61 @@ export function InvestmentChart({ data }: { data: DashboardEvolutionPoint[] }) {
         </AreaChart>
       </ResponsiveContainer>
     </ChartCard>
+  )
+}
+
+export function InvestmentConversionChart({
+  data,
+  loading,
+  range,
+}: {
+  data: DashboardEvolutionPoint[]
+  loading?: boolean
+  range?: Pick<DashboardData["filters"], "start" | "end" | "grain">
+}) {
+  const series = useMemo(() => fillEvolutionGaps(data, range), [data, range])
+  return (
+    <section className="flex h-full flex-col gap-6 rounded-2xl border border-edge bg-surface p-6">
+      <div className="flex flex-col gap-1">
+        <span className="eyebrow text-brand">Comparativo</span>
+        <h2 className="font-serif text-2xl font-semibold tracking-tight text-fg">Investimento e conversões</h2>
+      </div>
+      {loading ? (
+        <div className="min-h-56 flex-1 animate-pulse rounded-xl bg-surface-raised" />
+      ) : series.length === 0 ? (
+        <p className="flex min-h-56 flex-1 items-center justify-center text-sm text-fg-muted">Sem série neste recorte.</p>
+      ) : (
+        <div className="min-h-56 flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+              <CartesianGrid stroke={chartGrid} vertical={false} />
+              <XAxis dataKey="label" stroke={chartMuted} tickLine={false} fontSize={11} />
+              <YAxis
+                yAxisId="investment"
+                stroke={chartMuted}
+                tickLine={false}
+                fontSize={11}
+                width={52}
+                tickFormatter={(value) => compactMoney(Number(value))}
+              />
+              <YAxis
+                yAxisId="conversions"
+                orientation="right"
+                stroke={chartMuted}
+                tickLine={false}
+                fontSize={11}
+                width={36}
+                allowDecimals={false}
+              />
+              <Tooltip content={(props) => <ChartTooltip active={props.active} payload={props.payload} label={props.label} />} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Bar yAxisId="investment" dataKey="investment" name="Investimento" fill={chartBrand} radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="conversions" dataKey="conversions" name="Conversões" fill="#eab308" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </section>
   )
 }
 

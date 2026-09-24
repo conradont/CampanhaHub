@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     supabase_publishable_key: str = ""
     supabase_secret_key: str = ""
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    rate_limit_enabled: bool = True
+    rate_limit_default: str = "120/minute"
+    rate_limit_auth: str = "5/minute"
+    rate_limit_register: str = "3/minute"
 
     @property
     def sqlalchemy_database_url(self) -> str:

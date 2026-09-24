@@ -1,6 +1,7 @@
 import axios, { isAxiosError } from "axios"
 
 const TOKEN_KEY = "campanhahub_token"
+export const UNAUTHORIZED_EVENT = "auth:unauthorized"
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
@@ -31,6 +32,12 @@ api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
     if (isAxiosError(error)) {
+      const path = error.config?.url ?? ""
+      const isAuthForm = path.includes("/auth/login") || path.includes("/auth/register")
+      if (error.response?.status === 401 && !isAuthForm) {
+        clearToken()
+        window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+      }
       const detail = error.response?.data?.detail
       return Promise.reject(new Error(typeof detail === "string" ? detail : "Não foi possível concluir a operação."))
     }

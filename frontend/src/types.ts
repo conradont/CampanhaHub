@@ -95,6 +95,8 @@ export type CampaignSummary = {
 
 export type DashboardFilters = {
   period?: "30d" | "90d" | "12m" | "all"
+  start?: string
+  end?: string
   client_id?: number
   campaign_id?: number
   platform_id?: number
