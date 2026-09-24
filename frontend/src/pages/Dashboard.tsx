@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { MousePointerClick, Percent, Target, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ConversionsChart, InvestmentChart, PlatformInvestmentChart } from "@/components/charts"
-import { EmptyState, KpiCard, NativeSelect, PageHeader, PageSkeleton, SetupChecklist } from "@/components/shared"
+import { BudgetDonutChart, InvestmentHistoryChart } from "@/components/charts"
+import { CampaignHero, RecentCampaigns } from "@/components/dashboard-widgets"
+import { EmptyState, FilterPill, KpiCard, PageHeader, PageSkeleton, SetupChecklist } from "@/components/shared"
 import { useDashboard } from "@/hooks/use-dashboard"
 import { money, number, percent } from "@/lib/format"
 import { queryKeys } from "@/lib/query-keys"
 import { campaignsApi, clientsApi, platformsApi } from "@/lib/services"
 import { cn } from "@/lib/utils"
-import type { DashboardData, DashboardFilters } from "@/types"
+import type { DashboardFilters } from "@/types"
 
 const periods = [
   { value: "30d", label: "30 dias" },
@@ -19,27 +19,15 @@ const periods = [
   { value: "all", label: "Todo o período" },
 ] as const
 
-function trendOf(
-  comparison: DashboardData["overview"]["comparison"],
-  key: keyof NonNullable<DashboardData["overview"]["comparison"]>,
-) {
-  if (!comparison) return null
-  return { deltaPercent: comparison[key].delta_percent }
-}
-
 export function DashboardPage() {
   const [period, setPeriod] = useState<DashboardFilters["period"]>("30d")
-  const [clientId, setClientId] = useState("")
-  const [campaignId, setCampaignId] = useState("")
-  const [platformId, setPlatformId] = useState("")
+  const [campaignId, setCampaignId] = useState<number | null>(null)
 
   const filters = useMemo<DashboardFilters>(() => {
     const next: DashboardFilters = { period }
-    if (clientId) next.client_id = Number(clientId)
-    if (campaignId) next.campaign_id = Number(campaignId)
-    if (platformId) next.platform_id = Number(platformId)
+    if (campaignId) next.campaign_id = campaignId
     return next
-  }, [period, clientId, campaignId, platformId])
+  }, [period, campaignId])
 
   const { data, isLoading, isFetching, error } = useDashboard(filters)
   const setupQuery = useDashboard({ period: "all" })
@@ -50,7 +38,6 @@ export function DashboardPage() {
   const clients = clientsQuery.data ?? []
   const campaigns = campaignsQuery.data ?? []
   const platforms = platformsQuery.data ?? []
-  const visibleCampaigns = clientId ? campaigns.filter((campaign) => String(campaign.client_id) === clientId) : campaigns
   const listsLoading = clientsQuery.isLoading || campaignsQuery.isLoading || platformsQuery.isLoading
 
   if (listsLoading && !data) return <PageSkeleton />
@@ -65,29 +52,29 @@ export function DashboardPage() {
   const hasMetrics = Boolean(
     setupOverview && (setupOverview.total_investment > 0 || setupOverview.total_clicks > 0 || setupOverview.total_conversions > 0),
   )
-  const setupDone = hasClient && hasCampaign && hasMetrics
-  const hasChartData = Boolean(data && (data.evolution.length > 0 || data.by_campaign.length > 0 || data.by_platform.length > 0))
-  const hasActiveFilters = Boolean(clientId || campaignId || platformId || period !== "30d")
-  const comparison = data?.overview.comparison ?? null
+  const hasActiveFilters = Boolean(campaignId || period !== "30d")
   const widgetsBusy = isFetching && Boolean(data)
-
-  function clearFilters() {
-    setPeriod("30d")
-    setClientId("")
-    setCampaignId("")
-    setPlatformId("")
-  }
 
   return (
     <div>
       <PageHeader
+        eyebrow="Visão geral"
         title="Painel"
-        description="CTR, CPC e conversão no recorte — para decidir onde a verba rende."
+        description="Suas campanhas organizadas em 2 segundos."
         actions={
-          setupDone ? (
-            <Button asChild size="lg">
-              <Link to={campaigns[0] ? `/campanhas/${campaigns[0].id}` : "/campanhas"}>Registrar métricas</Link>
-            </Button>
+          hasCampaign ? (
+            <div className="flex flex-wrap gap-2">
+              {periods.map((item) => (
+                <FilterPill
+                  key={item.value}
+                  active={period === item.value}
+                  aria-pressed={period === item.value}
+                  onClick={() => setPeriod(item.value)}
+                >
+                  {item.label}
+                </FilterPill>
+              ))}
+            </div>
           ) : undefined
         }
       />
@@ -100,136 +87,58 @@ export function DashboardPage() {
         firstCampaignId={campaigns[0]?.id}
       />
 
-      {hasCampaign ? (
-        <section className="mb-6 flex flex-wrap items-end gap-3 rounded-[12px] border bg-card p-4">
-          <div className="grid gap-1">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Período</span>
-            <div className="flex flex-wrap gap-1">
-              {periods.map((item) => (
-                <Button
-                  key={item.value}
-                  size="sm"
-                  variant={period === item.value ? "default" : "outline"}
-                  aria-pressed={period === item.value}
-                  onClick={() => setPeriod(item.value)}
-                >
-                  {item.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <label className="grid min-w-40 flex-1 gap-1">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Cliente</span>
-            <NativeSelect
-              value={clientId}
-              onChange={(event) => {
-                setClientId(event.target.value)
-                setCampaignId("")
-              }}
-            >
-              <option value="">Todos</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
-          <label className="grid min-w-40 flex-1 gap-1">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Campanha</span>
-            <NativeSelect value={campaignId} onChange={(event) => setCampaignId(event.target.value)}>
-              <option value="">Todas</option>
-              {visibleCampaigns.map((campaign) => (
-                <option key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
-          <label className="grid min-w-40 flex-1 gap-1">
-            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Canal</span>
-            <NativeSelect value={platformId} onChange={(event) => setPlatformId(event.target.value)}>
-              <option value="">Todas</option>
-              {platforms.map((platform) => (
-                <option key={platform.id} value={platform.id}>
-                  {platform.name}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
-        </section>
-      ) : null}
-
-      {hasCampaign && !data ? (
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-          </div>
-          <Skeleton className="h-72" />
-        </div>
-      ) : null}
+      {hasCampaign && !data ? <PageSkeleton /> : null}
 
       {hasCampaign && data ? (
         <div className={cn("transition-opacity", widgetsBusy && "opacity-60")}>
-          <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="h-full xl:col-span-1">
+              <CampaignHero
+                campaigns={campaigns}
+                selectedId={campaignId}
+                onSelect={setCampaignId}
+                amount={data.overview.total_investment}
+                loading={isLoading}
+              />
+            </div>
+            <div className="xl:col-span-2">
+              <InvestmentHistoryChart data={data.evolution} loading={isLoading} />
+            </div>
+          </section>
+
+          <section className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <KpiCard icon={Percent} tone="data" label="CTR médio" value={percent(data.overview.average_ctr)} />
             <KpiCard
-              kind="indicador"
-              label="CTR médio"
-              value={percent(data.overview.average_ctr)}
-              trend={trendOf(comparison, "average_ctr")}
-            />
-            <KpiCard
-              kind="indicador"
+              icon={MousePointerClick}
               label="CPC médio"
               value={data.overview.average_cpc !== null ? money(data.overview.average_cpc) : "—"}
-              trend={trendOf(comparison, "average_cpc")}
-              invertTrend
             />
-            <KpiCard
-              kind="métrica"
-              label="Conversões"
-              value={number(data.overview.total_conversions)}
-              trend={trendOf(comparison, "total_conversions")}
-            />
-            <KpiCard
-              kind="métrica"
-              label="Investimento"
-              value={money(data.overview.total_investment)}
-              trend={trendOf(comparison, "total_investment")}
-            />
+            <KpiCard icon={Target} label="Conversões" value={number(data.overview.total_conversions)} />
+            <KpiCard icon={Wallet} glow tone="data" label="Investimento" value={money(data.overview.total_investment)} />
           </section>
 
-          <section className="mb-6 grid gap-4 border-y py-4 sm:grid-cols-3">
-            {[
-              ["Campanhas", number(data.overview.total_campaigns)],
-              ["Cliques", number(data.overview.total_clicks)],
-              ["Impressões", number(data.totals.impressions)],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <span className="block text-xs font-semibold tracking-wider text-muted-foreground uppercase">{label}</span>
-                <strong className="mt-2 block font-mono text-lg">{value}</strong>
+          {data.evolution.length > 0 || data.by_platform.length > 0 || data.by_campaign.length > 0 ? (
+            <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+              <div className="xl:col-span-2">
+                <BudgetDonutChart data={data.by_platform} loading={isLoading} />
               </div>
-            ))}
-          </section>
-
-          {hasChartData ? (
-            <section className="grid gap-4">
-              <InvestmentChart data={data.evolution} />
-              <div className="grid gap-4 lg:grid-cols-2">
-                <ConversionsChart data={data.evolution} />
-                <PlatformInvestmentChart data={data.by_platform} />
+              <div className="h-full xl:col-span-1">
+                <RecentCampaigns rows={data.by_campaign} loading={isLoading} />
               </div>
             </section>
           ) : hasMetrics ? (
             <EmptyState
               title="Sem dados neste recorte"
-              text="Ajuste o período, o cliente ou a campanha para ver os gráficos."
+              text="Ajuste o período ou a campanha para ver os gráficos."
               action={
                 hasActiveFilters ? (
-                  <Button variant="outline" onClick={clearFilters}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPeriod("30d")
+                      setCampaignId(null)
+                    }}
+                  >
                     Limpar filtros
                   </Button>
                 ) : undefined

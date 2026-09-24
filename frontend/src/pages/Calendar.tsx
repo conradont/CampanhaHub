@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils"
 const STATUS_DOT: Record<string, string> = {
   planejado: "bg-muted-foreground",
   em_producao: "bg-primary",
-  publicado: "bg-[#2dbe60]",
+  publicado: "bg-data",
   cancelado: "bg-destructive",
 }
 
@@ -62,7 +62,7 @@ function ContentChip({ item, onOpen }: { item: Content; onOpen: (item: Content) 
       type="button"
       onClick={() => onOpen(item)}
       title={`${item.title} · ${item.content_type} · ${status}`}
-      className="flex min-h-9 w-full items-start gap-1.5 rounded-[8px] px-1 py-1 text-left hover:bg-white/[0.06]"
+      className="flex min-h-9 w-full items-start gap-1.5 rounded-lg px-1 py-1 text-left hover:bg-surface-raised"
     >
       <span
         className={cn("mt-[7px] size-1.5 shrink-0 rounded-full", STATUS_DOT[item.status] ?? "bg-muted-foreground")}
@@ -72,7 +72,7 @@ function ContentChip({ item, onOpen }: { item: Content; onOpen: (item: Content) 
         <span className="block text-[12px] leading-[16px] font-medium break-words whitespace-normal">
           {item.title}
         </span>
-        <span className="mt-0.5 block text-[10px] leading-[14px] font-semibold tracking-[0.06em] text-[#7a7c84] uppercase">
+        <span className="mt-0.5 block font-mono text-[10px] leading-[14px] tracking-[0.08em] text-fg-muted uppercase">
           {item.content_type} · {status}
         </span>
       </span>
@@ -214,6 +214,7 @@ export function CalendarPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Agenda"
         title="Calendário"
         description="O que sai do forno esta semana."
         actions={
@@ -234,7 +235,7 @@ export function CalendarPage() {
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <strong className="min-w-36 text-center font-heading text-lg font-bold tracking-[0.04em] uppercase">{title}</strong>
+            <strong className="min-w-36 text-center font-serif text-lg font-semibold tracking-tight">{title}</strong>
             <Button
               variant="outline"
               size="icon-lg"
@@ -252,9 +253,9 @@ export function CalendarPage() {
         }
       />
 
-      <div className="mb-4 hidden overflow-hidden rounded-[12px] border bg-border md:grid md:grid-cols-7 md:gap-px">
+      <div className="mb-4 hidden overflow-hidden rounded-2xl border border-edge bg-edge md:grid md:grid-cols-7 md:gap-px">
         {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((label) => (
-          <div key={label} className="bg-muted px-2 py-2 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+          <div key={label} className="eyebrow bg-surface-raised px-2 py-2 text-center text-fg-muted">
             {label}
           </div>
         ))}
@@ -262,15 +263,15 @@ export function CalendarPage() {
           <div
             key={index}
             className={cn(
-              "flex min-h-36 min-w-0 flex-col bg-card p-2",
-              !cell.date && "bg-muted/40",
-              cell.date === todayIso && "ring-1 ring-primary ring-inset",
+              "flex min-h-36 min-w-0 flex-col bg-surface p-2",
+              !cell.date && "bg-surface-raised/40",
+              cell.date === todayIso && "ring-1 ring-brand ring-inset",
             )}
           >
             {cell.date ? (
               <>
                 <div className="flex items-center justify-between gap-1">
-                  <span className={cn("font-mono text-sm", cell.date === todayIso && "font-semibold text-primary")}>{cell.day}</span>
+                  <span className={cn("font-mono text-sm", cell.date === todayIso && "font-semibold text-brand")}>{cell.day}</span>
                   <Button
                     type="button"
                     variant="ghost"
@@ -298,11 +299,11 @@ export function CalendarPage() {
           ? agendaDays.map((day) => (
               <section
                 key={day.date}
-                className={cn("rounded-[12px] border bg-card p-3", day.date === todayIso && "border-primary")}
+                className={cn("rounded-2xl border border-edge bg-surface p-3", day.date === todayIso && "border-brand")}
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <div>
-                    <p className="font-heading capitalize">
+                    <p className="font-serif capitalize">
                       {weekdayLabel(day.date)} {day.day}
                     </p>
                     {day.date === todayIso ? <p className="text-xs text-primary">Hoje</p> : null}

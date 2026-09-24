@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronRight } from "lucide-react"
+import { Megaphone } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { EmptyState, Field, NativeSelect, PageHeader, PageSkeleton, RowMenu, SearchField, StatusBadge } from "@/components/shared"
+import { EmptyState, Field, FilterPill, NativeSelect, PageHeader, PageSkeleton, RowMenu, SearchField, StatusBadge } from "@/components/shared"
 import { getErrorMessage } from "@/lib/api"
 import { formatDate, money, STATUS_LABELS, todayISO } from "@/lib/format"
 import { compareValues, matchesSearch, type SortState } from "@/lib/list"
@@ -140,6 +140,7 @@ export function CampaignsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Fila"
         title="Campanhas"
         description="Uma fila de trabalho — não um mural de cards coloridos."
         actions={
@@ -160,15 +161,14 @@ export function CampaignsPage() {
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div className="flex flex-wrap gap-2">
           {filters.map((value) => (
-            <Button
+            <FilterPill
               key={value}
-              size="sm"
-              variant={filter === value ? "default" : "outline"}
+              active={filter === value}
               aria-pressed={filter === value}
               onClick={() => setFilter(value)}
             >
               {value === "historico" ? "Histórico" : STATUS_LABELS[value] ?? "Todas"}
-            </Button>
+            </FilterPill>
           ))}
         </div>
         {items.length > 0 ? (
@@ -234,29 +234,33 @@ export function CampaignsPage() {
           }
         />
       ) : (
-        <div className="grid gap-3">
+        <div className="flex flex-col gap-3">
           {visible.map((campaign) => (
             <article
               key={campaign.id}
-              className="flex items-center gap-3 rounded-[12px] border bg-card transition-[border-color,background] duration-150 ease-[cubic-bezier(0.2,0,0,1)] hover:border-[#7a7c84] hover:bg-white/[0.04]"
+              className="flex items-center gap-3 rounded-xl border border-edge bg-surface-raised px-2 transition-colors hover:bg-surface"
             >
               <Link
                 to={`/campanhas/${campaign.id}`}
                 aria-label={`Abrir ${campaign.name}`}
-                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4 rounded-lg p-5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4 rounded-lg px-3 py-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <div className="min-w-0">
-                  <StatusBadge status={campaign.status} />
-                  <h3 className="mt-2 font-heading text-xl font-bold">{campaign.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {campaign.client?.name} · {campaign.platform?.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(campaign.start_date)}
-                    {campaign.end_date ? ` – ${formatDate(campaign.end_date)}` : ""} · {money(campaign.budget)}
-                  </p>
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                    <Megaphone className="size-4" strokeWidth={1.8} />
+                  </span>
+                  <div className="min-w-0">
+                    <StatusBadge status={campaign.status} />
+                    <h3 className="mt-2 font-serif text-xl font-semibold tracking-tight text-fg">{campaign.name}</h3>
+                    <p className="text-sm text-fg-muted">
+                      {campaign.client?.name} · {campaign.platform?.name}
+                    </p>
+                    <p className="mt-1 font-mono text-xs tabular-nums text-fg-muted">
+                      {formatDate(campaign.start_date)}
+                      {campaign.end_date ? ` – ${formatDate(campaign.end_date)}` : ""} · {money(campaign.budget)}
+                    </p>
+                  </div>
                 </div>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               </Link>
               <div className="pr-3">
                 <RowMenu onEdit={() => startEdit(campaign)} onDelete={() => setToDelete(campaign)} />

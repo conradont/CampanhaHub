@@ -3,9 +3,9 @@ import { Link } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { EmptyState, KpiCard, NativeSelect, PageHeader, PageSkeleton, SearchField, SortButton, StatusBadge } from "@/components/shared"
+import { MousePointerClick, Megaphone, Target, Wallet } from "lucide-react"
+import { DateRangeBar, EmptyState, KpiCard, NativeSelect, PageHeader, PageSkeleton, SearchField, SortButton, StatusBadge } from "@/components/shared"
 import { getErrorMessage } from "@/lib/api"
 import { formatDate, money, number, percent } from "@/lib/format"
 import { compareValues, matchesSearch, toggleSort, type SortState } from "@/lib/list"
@@ -63,6 +63,7 @@ export function ReportsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Exportação"
         title="Relatórios"
         description="Uma folha para mostrar — ou para imprimir."
         actions={
@@ -75,9 +76,9 @@ export function ReportsPage() {
         }
       />
 
-      <div className="mb-6 grid gap-3 print:hidden sm:grid-cols-2 lg:grid-cols-4">
-        <label className="grid gap-1">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Cliente</span>
+      <div className="mb-6 flex flex-wrap items-end gap-3 print:hidden">
+        <label className="grid min-w-40 flex-1 gap-1">
+          <span className="eyebrow text-fg-muted">Cliente</span>
           <NativeSelect value={clientId} onChange={(event) => setClientId(event.target.value)}>
             <option value="">Todos os clientes</option>
             {clients.map((client) => (
@@ -87,8 +88,8 @@ export function ReportsPage() {
             ))}
           </NativeSelect>
         </label>
-        <label className="grid gap-1">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Status</span>
+        <label className="grid min-w-40 flex-1 gap-1">
+          <span className="eyebrow text-fg-muted">Status</span>
           <NativeSelect value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">Todos os status</option>
             <option value="rascunho">Rascunho</option>
@@ -98,21 +99,17 @@ export function ReportsPage() {
           </NativeSelect>
         </label>
         <label className="grid gap-1">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Início</span>
-          <Input type="date" value={start} onChange={(event) => setStart(event.target.value)} />
-        </label>
-        <label className="grid gap-1">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Término</span>
-          <Input type="date" value={end} onChange={(event) => setEnd(event.target.value)} />
+          <span className="eyebrow text-fg-muted">Período</span>
+          <DateRangeBar start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
         </label>
       </div>
 
       {data && data.rows.length > 0 ? (
-        <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Campanhas" value={data.total_campaigns} />
-          <KpiCard label="Investimento" value={money(data.investment)} />
-          <KpiCard label="Cliques" value={number(data.clicks)} />
-          <KpiCard label="Conversões" value={number(data.conversions)} />
+        <section className="mb-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          <KpiCard icon={Megaphone} label="Campanhas" value={data.total_campaigns} />
+          <KpiCard icon={Wallet} tone="data" glow label="Investimento" value={money(data.investment)} />
+          <KpiCard icon={MousePointerClick} label="Cliques" value={number(data.clicks)} />
+          <KpiCard icon={Target} tone="data" label="Conversões" value={number(data.conversions)} />
         </section>
       ) : null}
 
@@ -160,7 +157,7 @@ export function ReportsPage() {
               }
             />
           ) : (
-            <div className="overflow-hidden rounded-[12px] border bg-card">
+            <div className="overflow-hidden rounded-2xl border border-edge bg-surface">
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -1,6 +1,7 @@
 import { cloneElement, isValidElement, useId, type ComponentProps, type ReactElement, type ReactNode } from "react"
 import { Link } from "react-router-dom"
-import { Check, ChevronDown, ChevronUp, ChevronsUpDown, Inbox, MoreHorizontal, Minus, Search, TrendingDown, TrendingUp } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
+import { Calendar, Check, ChevronDown, ChevronUp, ChevronsUpDown, Inbox, MoreHorizontal, Minus, Search, TrendingDown, TrendingUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,17 +19,20 @@ import { cn } from "@/lib/utils"
 export function PageHeader({
   title,
   description,
+  eyebrow,
   actions,
 }: {
   title: string
   description: string
+  eyebrow?: string
   actions?: ReactNode
 }) {
   return (
-    <header className="mb-6 flex flex-wrap items-start justify-between gap-4 print:hidden">
-      <div>
-        <h1 className="font-heading text-[34px] leading-9 font-bold tracking-[0.02em] uppercase">{title}</h1>
-        <p className="mt-2 max-w-xl text-[14px] leading-[21px] text-[#7a7c84]">{description}</p>
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4 print:hidden">
+      <div className="flex flex-col gap-1">
+        {eyebrow ? <span className="eyebrow text-brand">{eyebrow}</span> : null}
+        <h1 className="font-serif text-4xl font-semibold tracking-tight text-fg">{title}</h1>
+        <p className="text-sm text-fg-muted">{description}</p>
       </div>
       {actions}
     </header>
@@ -80,9 +84,9 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col gap-3.5 py-8">
-      {icon ? <div className="text-primary">{icon}</div> : <Inbox className="size-4 text-[#7a7c84]" />}
-      <p className="font-heading text-[26px] leading-[30px] font-bold tracking-[0.02em] uppercase">{title}</p>
-      <p className="max-w-md text-[14px] leading-[21px] text-[#7a7c84]">{text}</p>
+      {icon ? <div className="text-brand">{icon}</div> : <Inbox className="size-4 text-fg-muted" />}
+      <p className="font-serif text-2xl font-semibold tracking-tight text-fg">{title}</p>
+      <p className="max-w-md text-sm text-fg-muted">{text}</p>
       {action ? <div className="mt-1">{action}</div> : null}
     </div>
   )
@@ -117,41 +121,98 @@ export function SetupChecklist({
   if (nextIndex === -1) return null
 
   return (
-    <section className="mb-6 rounded-[12px] border bg-card p-6">
-      <p className="font-heading text-[22px] leading-[26px] font-bold tracking-[0.01em] uppercase">Monte a mesa em quatro passos</p>
-      <p className="mt-2 text-[14px] leading-[21px] text-[#7a7c84]">O painel fica útil quando a primeira métrica entra.</p>
+    <section className="mb-6 rounded-2xl border border-edge bg-surface p-6">
+      <span className="eyebrow text-brand">Onboarding</span>
+      <p className="mt-1 font-serif text-2xl font-semibold tracking-tight text-fg">Monte a mesa em quatro passos</p>
+      <p className="mt-2 text-sm text-fg-muted">O painel fica útil quando a primeira métrica entra.</p>
       <ol className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {steps.map((step, index) => {
           const current = index === nextIndex
           return (
             <li
               key={step.title}
-              className={cn("flex flex-col rounded-[12px] border p-4", current && "border-primary")}
+              className={cn("flex flex-col rounded-xl border border-edge bg-surface-raised p-4", current && "border-brand")}
             >
               <span
                 className={cn(
-                  "grid size-8 place-items-center rounded-full text-sm font-medium",
-                  step.done ? "bg-[#2dbe60] text-[#0b0b0e]" : current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                  "grid size-8 place-items-center rounded-lg text-sm font-medium",
+                  step.done ? "bg-data text-background" : current ? "bg-brand text-background" : "bg-surface text-fg-muted",
                 )}
               >
                 {step.done ? <Check className="size-4" strokeWidth={2.25} /> : index + 1}
               </span>
-              <strong className="mt-3 text-[11px] font-bold tracking-[0.08em] uppercase">{step.title}</strong>
-              <p className="mt-1 flex-1 text-sm text-[#7a7c84]">{step.text}</p>
+              <strong className="eyebrow mt-3 text-fg">{step.title}</strong>
+              <p className="mt-1 flex-1 text-sm text-fg-muted">{step.text}</p>
               {current ? (
                 <Button asChild className="mt-4 w-fit">
                   <Link to={step.to}>{step.cta}</Link>
                 </Button>
               ) : step.done ? (
-                <span className="mt-4 text-[11px] font-semibold tracking-[0.07em] text-[#7a7c84] uppercase">Concluído</span>
+                <span className="eyebrow mt-4 text-fg-muted">Concluído</span>
               ) : (
-                <span className="mt-4 text-[11px] tracking-[0.07em] text-[#7a7c84] uppercase">Em seguida</span>
+                <span className="eyebrow mt-4 text-fg-muted">Em seguida</span>
               )}
             </li>
           )
         })}
       </ol>
     </section>
+  )
+}
+
+export function FilterPill({
+  active,
+  children,
+  className,
+  ...props
+}: ComponentProps<"button"> & { active?: boolean }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "rounded-full border px-4 py-1.5 text-sm transition-colors duration-200",
+        active ? "border-brand bg-brand-soft text-brand" : "border-edge bg-surface text-fg-muted hover:text-fg",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+export function DateRangeBar({
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+  className,
+}: {
+  start: string
+  end: string
+  onStartChange: (value: string) => void
+  onEndChange: (value: string) => void
+  className?: string
+}) {
+  return (
+    <div className={cn("flex items-center gap-2 rounded-xl border border-edge bg-surface px-3 py-2", className)}>
+      <Calendar className="size-4 text-fg-muted" strokeWidth={1.8} />
+      <input
+        type="date"
+        value={start}
+        max={end || undefined}
+        onChange={(event) => onStartChange(event.target.value)}
+        className="bg-transparent font-mono text-xs text-fg outline-none [color-scheme:dark]"
+      />
+      <span className="text-fg-muted">—</span>
+      <input
+        type="date"
+        value={end}
+        min={start || undefined}
+        onChange={(event) => onEndChange(event.target.value)}
+        className="bg-transparent font-mono text-xs text-fg outline-none [color-scheme:dark]"
+      />
+    </div>
   )
 }
 
@@ -184,48 +245,68 @@ export function KpiCard({
   label,
   value,
   kind,
+  icon: Icon,
+  tone = "neutral",
+  glow,
   trend,
   invertTrend,
 }: {
   label: string
   value: string | number
   kind?: "métrica" | "indicador"
+  icon?: LucideIcon
+  tone?: "data" | "negative" | "neutral"
+  glow?: boolean
   trend?: { deltaPercent: number | null } | null
   invertTrend?: boolean
 }) {
   const delta = trend?.deltaPercent
   const improved = delta == null ? null : invertTrend ? delta < 0 : delta > 0
   const declined = delta == null ? null : invertTrend ? delta > 0 : delta < 0
+  const toneClass = tone === "data" ? "text-data" : tone === "negative" ? "text-negative" : "text-fg"
 
   return (
-    <article className="rounded-[12px] border bg-card p-6">
-      <div className="flex items-center justify-between gap-2">
-        <span className="block text-[11px] font-bold tracking-[0.08em] text-[#7a7c84] uppercase">{label}</span>
-        {kind ? (
-          <span className="text-[10px] font-bold tracking-[0.08em] text-[#7a7c84] uppercase">{kind}</span>
-        ) : null}
-      </div>
-      <strong className="mt-2 block font-mono text-3xl font-medium leading-none">{value}</strong>
-      {trend ? (
-        <p
-          className={cn(
-            "mt-3 inline-flex items-center gap-1 text-xs font-medium",
-            improved && "text-[#2dbe60]",
-            declined && "text-[#ff8a87]",
-            !improved && !declined && "text-[#7a7c84]",
-          )}
-        >
-          {delta == null || delta === 0 ? (
-            <Minus className="size-3.5" />
-          ) : delta > 0 ? (
-            <TrendingUp className="size-3.5" />
-          ) : (
-            <TrendingDown className="size-3.5" />
-          )}
-          {delta == null ? "Sem base anterior" : `${delta > 0 ? "+" : ""}${delta.toLocaleString("pt-BR")}% vs. recorte anterior`}
-        </p>
+    <div className="relative">
+      {glow ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-[2px] rounded-2xl opacity-35 blur-md"
+          style={{ background: "conic-gradient(from 180deg, #f6d365, #a1ffce, #7ee8fa, #b79df6, #f6a6c1, #f6d365)" }}
+        />
       ) : null}
-    </article>
+      <article className="relative flex flex-col gap-4 rounded-2xl border border-edge bg-surface p-5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="eyebrow text-fg-muted">{label}</span>
+          {Icon ? (
+            <span className="flex size-8 items-center justify-center rounded-lg bg-surface-raised text-fg-muted">
+              <Icon className="size-4" strokeWidth={1.8} />
+            </span>
+          ) : kind ? (
+            <span className="eyebrow text-fg-muted">{kind}</span>
+          ) : null}
+        </div>
+        <strong className={cn("font-rounded text-3xl font-bold tabular-nums tracking-tight", toneClass)}>{value}</strong>
+        {trend ? (
+          <p
+            className={cn(
+              "inline-flex items-center gap-1 text-xs font-medium",
+              improved && "text-data",
+              declined && "text-negative",
+              !improved && !declined && "text-fg-muted",
+            )}
+          >
+            {delta == null || delta === 0 ? (
+              <Minus className="size-3.5" />
+            ) : delta > 0 ? (
+              <TrendingUp className="size-3.5" />
+            ) : (
+              <TrendingDown className="size-3.5" />
+            )}
+            {delta == null ? "Sem base anterior" : `${delta > 0 ? "+" : ""}${delta.toLocaleString("pt-BR")}% vs. recorte anterior`}
+          </p>
+        ) : null}
+      </article>
+    </div>
   )
 }
 
@@ -285,7 +366,7 @@ export function NativeSelect({ className, ...props }: ComponentProps<"select">) 
     <select
       data-slot="input"
       className={cn(
-        "h-9 w-full min-w-0 rounded-[10px] border border-input bg-[#16171b] px-2.5 text-sm outline-none transition-[border-color] duration-150 ease-[cubic-bezier(0.2,0,0,1)] focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
+        "h-10 w-full min-w-0 rounded-xl border border-edge bg-surface-raised px-3 text-sm outline-none transition-[border-color] duration-150 focus-visible:border-brand disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

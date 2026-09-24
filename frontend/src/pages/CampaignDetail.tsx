@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronLeft, Trash2 } from "lucide-react"
+import { ChevronLeft, MousePointerClick, Percent, Target, Trash2, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -181,24 +181,25 @@ export function CampaignDetailPage() {
     <div>
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link to="/campanhas" className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/campanhas" className="mb-2 inline-flex items-center gap-1 text-sm text-fg-muted hover:text-fg">
             <ChevronLeft className="size-4" /> Campanhas
           </Link>
-          <h1 className="font-heading text-[34px] leading-9 font-bold tracking-[0.02em]">{campaign.name}</h1>
-          <p className="mt-2 text-[14px] leading-[21px] text-[#7a7c84]">
+          <span className="eyebrow text-brand">Campanha</span>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-fg">{campaign.name}</h1>
+          <p className="mt-2 text-sm text-fg-muted">
             {campaign.client?.name} · {campaign.platform?.name} · {campaign.objective || "Sem objetivo informado"}
           </p>
         </div>
         <StatusBadge status={campaign.status} />
       </header>
 
-      <section className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Investido" value={money(totals.investment)} />
-        <KpiCard label="CPC" value={indicators.cpc !== null ? money(indicators.cpc) : "—"} />
-        <KpiCard label="CTR" value={percent(indicators.ctr)} />
-        <KpiCard label="Conversão" value={percent(indicators.taxa_conversao)} />
+      <section className="mb-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard icon={Wallet} tone="data" glow label="Investido" value={money(totals.investment)} />
+        <KpiCard icon={MousePointerClick} label="CPC" value={indicators.cpc !== null ? money(indicators.cpc) : "—"} />
+        <KpiCard icon={Percent} label="CTR" value={percent(indicators.ctr)} />
+        <KpiCard icon={Target} tone="data" label="Conversão" value={percent(indicators.taxa_conversao)} />
       </section>
-      <section className="mb-6 grid gap-4 border-y py-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mb-6 grid gap-4 rounded-2xl border border-edge bg-surface px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Orçamento usado", summary.budget_used_percent !== null ? `${summary.budget_used_percent}%` : "—"],
           ["Alcance", number(totals.reach)],
@@ -206,8 +207,8 @@ export function CampaignDetailPage() {
           ["Conversões", number(totals.conversions)],
         ].map(([label, value]) => (
           <div key={label}>
-            <span className="block text-xs font-semibold tracking-wider text-muted-foreground uppercase">{label}</span>
-            <strong className="mt-2 block font-mono text-lg">{value}</strong>
+            <span className="eyebrow text-fg-muted">{label}</span>
+            <strong className="mt-2 block font-rounded text-lg font-bold tabular-nums">{value}</strong>
           </div>
         ))}
       </section>
@@ -219,9 +220,12 @@ export function CampaignDetailPage() {
           <TabsTrigger value="despesas">Investimentos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="metricas" className="rounded-[12px] border bg-card p-4">
+        <TabsContent value="metricas" className="rounded-2xl border border-edge bg-surface p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Métricas manuais</h2>
+            <div>
+              <span className="eyebrow text-brand">Registro</span>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">Métricas manuais</h2>
+            </div>
             {metrics.length > 0 ? (
               <Button
                 onClick={() => {
@@ -293,9 +297,12 @@ export function CampaignDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="conteudos" className="rounded-[12px] border bg-card p-4">
+        <TabsContent value="conteudos" className="rounded-2xl border border-edge bg-surface p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Planejamento de conteúdos</h2>
+            <div>
+              <span className="eyebrow text-brand">Fila</span>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">Planejamento de conteúdos</h2>
+            </div>
             {contents.length > 0 ? (
               <Button
                 onClick={() => {
@@ -339,7 +346,7 @@ export function CampaignDetailPage() {
                   <TableRow key={content.id}>
                     <TableCell>
                       <strong>{content.title}</strong>
-                      {content.notes ? <p className="text-sm text-muted-foreground">{content.notes}</p> : null}
+                      {content.notes ? <p className="text-sm text-fg-muted">{content.notes}</p> : null}
                     </TableCell>
                     <TableCell>{content.content_type}</TableCell>
                     <TableCell>{formatDate(content.scheduled_date)}</TableCell>
@@ -364,9 +371,12 @@ export function CampaignDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="despesas" className="rounded-[12px] border bg-card p-4">
+        <TabsContent value="despesas" className="rounded-2xl border border-edge bg-surface p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-heading text-xl font-bold tracking-[0.04em] uppercase">Investimentos e despesas</h2>
+            <div>
+              <span className="eyebrow text-brand">Caixa</span>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">Investimentos e despesas</h2>
+            </div>
             {expenses.length > 0 ? (
               <Button
                 onClick={() => {

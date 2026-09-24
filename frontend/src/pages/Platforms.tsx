@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Share2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -80,6 +80,7 @@ export function PlatformsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Distribuição"
         title="Canais"
         description="Onde a peça vai ao ar."
         actions={
@@ -126,19 +127,31 @@ export function PlatformsPage() {
               }
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {visible.map((platform) => (
-            <Card key={platform.id}>
-              <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                <CardTitle className="font-heading text-lg font-bold">{platform.name}</CardTitle>
-                <RowMenu onDelete={() => setToDelete(platform)} />
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{platform.description || "Sem nota"}</p>
-              </CardContent>
-            </Card>
-          ))}
-            </div>
+            <section className="flex flex-col gap-6 rounded-2xl border border-edge bg-surface p-6">
+              <div className="flex flex-col gap-1">
+                <span className="eyebrow text-brand">Seus canais</span>
+                <h2 className="font-serif text-2xl font-semibold tracking-tight text-fg">Onde as peças vão ao ar</h2>
+              </div>
+              <ul className="flex flex-col gap-3">
+                {visible.map((platform) => (
+                  <li
+                    key={platform.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-edge bg-surface-raised px-5 py-4"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                        <Share2 className="size-4" strokeWidth={1.8} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-fg">{platform.name}</p>
+                        <p className="truncate text-xs text-fg-muted">{platform.description || "Sem nota"}</p>
+                      </div>
+                    </div>
+                    <RowMenu onDelete={() => setToDelete(platform)} />
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
         </>
       )}

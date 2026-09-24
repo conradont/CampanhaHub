@@ -111,6 +111,7 @@ export function ClientsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Carteira"
         title="Clientes"
         description="Quem paga a campanha — e em qual setor atua."
         actions={
@@ -144,7 +145,7 @@ export function ClientsPage() {
               }
             />
           ) : (
-        <div className="overflow-hidden rounded-[12px] border bg-card">
+        <section className="overflow-hidden rounded-2xl border border-edge bg-surface">
           <Table>
             <TableHeader>
               <TableRow>
@@ -166,12 +167,12 @@ export function ClientsPage() {
                 <TableRow key={client.id}>
                   <TableCell>
                     <strong>{client.name}</strong>
-                    {client.description ? <p className="text-sm text-muted-foreground">{client.description}</p> : null}
+                    {client.description ? <p className="text-sm text-fg-muted">{client.description}</p> : null}
                   </TableCell>
                   <TableCell>{client.segment || "—"}</TableCell>
                   <TableCell>
                     {client.contact_email || "—"}
-                    {client.contact_phone ? <p className="text-sm text-muted-foreground">{client.contact_phone}</p> : null}
+                    {client.contact_phone ? <p className="text-sm text-fg-muted">{client.contact_phone}</p> : null}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={client.status} />
@@ -183,7 +184,7 @@ export function ClientsPage() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </section>
           )}
         </>
       )}
