@@ -21,9 +21,15 @@ class Settings(BaseSettings):
     supabase_secret_key: str = ""
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
     rate_limit_enabled: bool = True
-    rate_limit_default: str = "120/minute"
-    rate_limit_auth: str = "5/minute"
-    rate_limit_register: str = "3/minute"
+    # Navegação: cada rota, por usuário. Acima de uma página que dispara várias req/s ao carregar.
+    rate_limit_browse: str = "200/minute"
+    # Login e cadastro: mais rígidos, por conta (e um teto por IP contra varredura).
+    rate_limit_login: str = "20/minute"
+    rate_limit_login_ip: str = "60/minute"
+    rate_limit_register: str = "10/minute"
+    rate_limit_register_ip: str = "30/minute"
+    # Exportação pesa mais que listar.
+    rate_limit_export: str = "30/minute"
 
     @property
     def sqlalchemy_database_url(self) -> str:

@@ -1,14 +1,16 @@
 from datetime import date
 from io import StringIO
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import settings
 from app.database import get_db
 from app.deps import get_current_user
 from app.indicators import build_indicators
 from app.models import Campaign, Expense, Metric, User
+from app.rate_limit import limiter
 
 router = APIRouter(prefix="/api/reports", tags=["Relatórios"])
 
@@ -89,7 +91,9 @@ def reports(
 
 
 @router.get("/export.csv")
+@limiter.limit(settings.rate_limit_export, override_defaults=False)
 def export_csv(
+    request: Request,
     client_id: int | None = None,
     status: str | None = Query(None),
     start: date | None = None,

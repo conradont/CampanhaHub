@@ -60,7 +60,7 @@ uvicorn app.main:app --reload --port 8000
 
 API e Swagger: http://127.0.0.1:8000/docs
 
-A API limita tentativas por IP: **5/min** no login, **3/min** no cadastro e **120/min** nas demais rotas. Em testes o limite fica desligado (`RATE_LIMIT_ENABLED=false`). Em produção, se houver proxy, o IP vem de `X-Forwarded-For`.
+O limite usa janela deslizante e a cota de quem já entrou é do usuário do token, não do IP — um Wi-Fi compartilhado não divide o saldo. Cada rota de navegação aceita **200/min** por pessoa. Login: **20/min por e-mail** e **60/min por IP**. Cadastro: **10/min por e-mail** e **30/min por IP**. Exportação CSV: **30/min**. Se estourar, a API responde 429 com `Retry-After` e pede para esperar alguns segundos. Em testes o limite fica desligado (`RATE_LIMIT_ENABLED=false`). Atrás de proxy, o IP anônimo vem de `X-Forwarded-For`.
 
 ### 2. Front-end
 

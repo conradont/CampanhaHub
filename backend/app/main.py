@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.rate_limit import limiter, rate_limit_handler
+from app.rate_limit import BrowseRateLimitMiddleware, limiter, rate_limit_handler
 from app.routers import auth, campaigns, clients, contents, dashboard, expenses, metrics, platforms, reports
 
 
@@ -28,7 +27,7 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
-app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(BrowseRateLimitMiddleware)
 
 origins = [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]
 app.add_middleware(
@@ -37,6 +36,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Retry-After", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 )
 
 app.include_router(auth.router)

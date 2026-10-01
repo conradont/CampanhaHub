@@ -39,6 +39,14 @@ api.interceptors.response.use(
         window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
       }
       const detail = error.response?.data?.detail
+      if (error.response?.status === 429) {
+        const retryAfter = Number(error.response.headers["retry-after"])
+        const pause = Number.isFinite(retryAfter) && retryAfter > 0
+          ? `Espere ${retryAfter === 1 ? "1 segundo" : `${retryAfter} segundos`} e tente de novo.`
+          : "Espere alguns segundos e tente de novo."
+        const message = typeof detail === "string" ? detail : `Muitas requisições em sequência. ${pause}`
+        return Promise.reject(new Error(message))
+      }
       return Promise.reject(new Error(typeof detail === "string" ? detail : "Não foi possível concluir a operação."))
     }
     return Promise.reject(error)
