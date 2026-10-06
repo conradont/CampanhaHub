@@ -43,6 +43,9 @@ export const STATUS_LABELS: Record<string, string> = {
   em_producao: "Em produção",
   publicado: "Publicado",
   cancelado: "Cancelado",
+  ideia: "Ideia",
+  em_teste: "Em teste",
+  aprendido: "Aprendido",
 }
 
 export const CONTENT_TYPES = ["post", "reels", "stories", "vídeo", "carrossel", "anúncio", "e-mail", "blog"] as const

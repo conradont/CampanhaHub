@@ -16,6 +16,13 @@ def test_dashboard_uses_mock_dataset(mock_user):
     assert body["overview"]["total_clicks"] == seeded.total_clicks
     assert body["overview"]["average_ctr"] == calc_ctr(seeded.total_clicks, seeded.total_impressions)
     assert body["overview"]["average_cpc"] == calc_cpc(seeded.total_investment, seeded.total_clicks)
+    assert body["overview"]["total_new_customers"] > 0
+    assert body["overview"]["average_cac"] not in (None, body["overview"]["average_cpc"])
+    assert body["funnel"] == {
+        "impressions": seeded.total_impressions,
+        "clicks": seeded.total_clicks,
+        "conversions": seeded.total_conversions,
+    }
     assert [row["campaign"] for row in body["by_campaign"]][0] == "Black Friday"
     assert {row["platform"] for row in body["by_platform"]} >= {"Instagram", "Facebook", "Google Ads", "TikTok"}
     assert len(body["evolution"]) == 4
@@ -59,6 +66,8 @@ def test_dashboard_compares_previous_period(mock_user):
     assert "delta_percent" in comparison["total_investment"]
     assert "previous" in comparison["average_ctr"]
     assert "previous" in comparison["average_cpc"]
+    assert "previous" in comparison["average_cac"]
+    assert "previous" in comparison["total_new_customers"]
 
     ninety = client.get("/api/dashboard?period=90d", headers=headers).json()
     assert ninety["overview"]["comparison"] is not None

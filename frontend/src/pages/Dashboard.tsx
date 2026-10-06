@@ -136,6 +136,27 @@ export function DashboardPage() {
             <KpiCard icon={Wallet} glow tone="data" label="Investimento" value={money(data.overview.total_investment)} />
           </section>
 
+          <section className="mb-6 grid gap-4 rounded-2xl border border-edge bg-surface px-5 py-4 sm:grid-cols-4">
+            <div>
+              <span className="eyebrow text-fg-muted">CAC</span>
+              <strong className="mt-2 block font-rounded text-lg font-bold tabular-nums">
+                {data.overview.average_cac !== null ? money(data.overview.average_cac) : "—"}
+              </strong>
+            </div>
+            <div>
+              <span className="eyebrow text-fg-muted">Impressões</span>
+              <strong className="mt-2 block font-rounded text-lg font-bold tabular-nums">{number(data.funnel.impressions)}</strong>
+            </div>
+            <div>
+              <span className="eyebrow text-fg-muted">Cliques</span>
+              <strong className="mt-2 block font-rounded text-lg font-bold tabular-nums">{number(data.funnel.clicks)}</strong>
+            </div>
+            <div>
+              <span className="eyebrow text-fg-muted">Conversões</span>
+              <strong className="mt-2 block font-rounded text-lg font-bold tabular-nums">{number(data.funnel.conversions)}</strong>
+            </div>
+          </section>
+
           {data.evolution.length > 0 || data.by_platform.length > 0 || data.by_campaign.length > 0 ? (
             <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
               <div className="flex flex-col gap-6 xl:col-span-2">

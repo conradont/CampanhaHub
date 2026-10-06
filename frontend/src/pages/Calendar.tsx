@@ -112,6 +112,9 @@ export function CalendarPage() {
       scheduled_date: defaultDate,
       status: "planejado",
       notes: "",
+      owner: "",
+      approach: "",
+      estimated_cost: 0,
     },
   })
 
@@ -184,6 +187,9 @@ export function CalendarPage() {
       scheduled_date: date,
       status: "planejado",
       notes: "",
+      owner: "",
+      approach: "",
+      estimated_cost: 0,
     })
     setOpen(true)
   }
@@ -198,6 +204,9 @@ export function CalendarPage() {
       scheduled_date: item.scheduled_date,
       status: item.status as ContentValues["status"],
       notes: item.notes ?? "",
+      owner: item.owner ?? "",
+      approach: item.approach ?? "",
+      estimated_cost: item.estimated_cost ?? 0,
     })
     setOpen(true)
   }
@@ -384,6 +393,15 @@ export function CalendarPage() {
                 <option value="publicado">Publicado</option>
                 <option value="cancelado">Cancelado</option>
               </NativeSelect>
+            </Field>
+            <Field label="Responsável" error={form.formState.errors.owner?.message}>
+              <Input {...form.register("owner")} />
+            </Field>
+            <Field label="Como executar" error={form.formState.errors.approach?.message}>
+              <Textarea rows={2} {...form.register("approach")} />
+            </Field>
+            <Field label="Custo estimado (R$)" error={form.formState.errors.estimated_cost?.message}>
+              <Input type="number" min="0" step="0.01" {...form.register("estimated_cost", { valueAsNumber: true })} />
             </Field>
             <Field label="Observações" error={form.formState.errors.notes?.message}>
               <Textarea rows={3} {...form.register("notes")} />

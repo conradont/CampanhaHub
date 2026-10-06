@@ -106,6 +106,7 @@ def campaign_summary(campaign_id: int, db: Session = Depends(get_db), current_us
         "comments": sum(m.comments for m in metrics),
         "shares": sum(m.shares for m in metrics),
         "conversions": sum(m.conversions for m in metrics),
+        "new_customers": sum(m.new_customers for m in metrics),
         "investment": sum(m.investment for m in metrics) + sum(e.amount for e in expenses),
         "budget": campaign.budget,
     }
@@ -118,10 +119,24 @@ def campaign_summary(campaign_id: int, db: Session = Depends(get_db), current_us
         totals["comments"],
         totals["shares"],
         totals["reach"],
+        totals["new_customers"],
     )
+    actual_by_goal = {
+        "alcance": totals["reach"],
+        "cliques": totals["clicks"],
+        "conversoes": totals["conversions"],
+        "novos_clientes": totals["new_customers"],
+    }
+    actual = actual_by_goal.get(campaign.goal_metric, 0)
     return {
         "campaign": CampaignOut.model_validate(campaign),
         "totals": totals,
         "indicators": indicators,
+        "goal": {
+            "metric": campaign.goal_metric,
+            "value": campaign.goal_value,
+            "actual": actual,
+            "progress_percent": round((actual / campaign.goal_value) * 100, 1) if campaign.goal_value else None,
+        },
         "budget_used_percent": round((totals["investment"] / campaign.budget) * 100, 2) if campaign.budget else None,
     }

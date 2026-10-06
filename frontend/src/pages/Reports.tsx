@@ -18,7 +18,7 @@ export function ReportsPage() {
   const [start, setStart] = useState("")
   const [end, setEnd] = useState("")
   const [query, setQuery] = useState("")
-  const [sort, setSort] = useState<SortState<"name" | "investment" | "cpc" | "ctr">>({ key: "investment", dir: "desc" })
+  const [sort, setSort] = useState<SortState<"name" | "investment" | "cpc" | "cac" | "ctr">>({ key: "investment", dir: "desc" })
 
   const params = useMemo(() => {
     const next: Record<string, string> = {}
@@ -175,6 +175,9 @@ export function ReportsPage() {
                       <SortButton label="CPC" active={sort.key === "cpc"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "cpc"))} align="right" />
                     </TableHead>
                     <TableHead className="text-right">
+                      <SortButton label="CAC" active={sort.key === "cac"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "cac"))} align="right" />
+                    </TableHead>
+                    <TableHead className="text-right">
                       <SortButton label="CTR" active={sort.key === "ctr"} direction={sort.dir} onClick={() => setSort(toggleSort(sort, "ctr"))} align="right" />
                     </TableHead>
                     <TableHead className="text-right">Conversão</TableHead>
@@ -195,6 +198,7 @@ export function ReportsPage() {
                       </TableCell>
                       <TableCell className="text-right font-mono">{money(row.investment)}</TableCell>
                       <TableCell className="text-right font-mono">{row.cpc !== null ? money(row.cpc) : "—"}</TableCell>
+                      <TableCell className="text-right font-mono">{row.cac !== null ? money(row.cac) : "—"}</TableCell>
                       <TableCell className="text-right font-mono">{percent(row.ctr)}</TableCell>
                       <TableCell className="text-right font-mono">{percent(row.taxa_conversao)}</TableCell>
                     </TableRow>

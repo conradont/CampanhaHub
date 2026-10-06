@@ -13,6 +13,16 @@ export const clientSchema = z.object({
   name: z.string().min(2, "Informe o nome"),
   segment: z.string(),
   description: z.string(),
+  positioning: z.string(),
+  swot_strengths: z.string(),
+  swot_weaknesses: z.string(),
+  swot_opportunities: z.string(),
+  swot_threats: z.string(),
+  audience_geo: z.string(),
+  audience_demo: z.string(),
+  audience_behavior: z.string(),
+  audience_psycho: z.string(),
+  persona: z.string(),
   contact_email: z.union([z.literal(""), z.email("E-mail inválido")]),
   contact_phone: z.string(),
   status: z.enum(["ativo", "inativo"]),
@@ -27,6 +37,10 @@ export const campaignSchema = z.object({
   name: z.string().min(2, "Informe o nome"),
   objective: z.string(),
   description: z.string(),
+  goal_metric: z.enum(["", "alcance", "cliques", "conversoes", "novos_clientes"]),
+  goal_value: z.number().min(0, "Meta inválida"),
+  strategy: z.enum(["", "conteudo", "influenciadores", "seo", "midia_paga", "email"]),
+  references: z.string(),
   client_id: z.number().int().positive("Selecione um cliente"),
   platform_id: z.number().int().positive("Selecione um canal"),
   start_date: z.string().min(1, "Informe a data de início"),
@@ -42,6 +56,9 @@ export const contentSchema = z.object({
   scheduled_date: z.string().min(1, "Informe a data"),
   status: z.enum(["planejado", "em_producao", "publicado", "cancelado"]),
   notes: z.string(),
+  owner: z.string(),
+  approach: z.string(),
+  estimated_cost: z.number().min(0, "Custo inválido"),
 })
 
 export const metricSchema = z.object({
@@ -54,6 +71,7 @@ export const metricSchema = z.object({
   comments: z.number().int().min(0),
   shares: z.number().int().min(0),
   conversions: z.number().int().min(0),
+  new_customers: z.number().int().min(0),
   investment: z.number().min(0),
 })
 
@@ -65,6 +83,22 @@ export const expenseSchema = z.object({
   category: z.enum(["mídia", "produção", "ferramenta", "outros"]),
 })
 
+export const keywordSchema = z.object({
+  campaign_id: z.number().int().positive(),
+  term: z.string().min(2, "Informe a palavra-chave"),
+  intent: z.string(),
+  target_url: z.string(),
+  notes: z.string(),
+})
+
+export const experimentSchema = z.object({
+  campaign_id: z.number().int().positive(),
+  hypothesis: z.string().min(2, "Descreva a hipótese"),
+  metric_name: z.string(),
+  status: z.enum(["ideia", "em_teste", "aprendido"]),
+  learning: z.string(),
+})
+
 export type LoginValues = z.infer<typeof loginSchema>
 export type RegisterValues = z.infer<typeof registerSchema>
 export type ClientValues = z.infer<typeof clientSchema>
@@ -73,3 +107,5 @@ export type CampaignValues = z.infer<typeof campaignSchema>
 export type ContentValues = z.infer<typeof contentSchema>
 export type MetricValues = z.infer<typeof metricSchema>
 export type ExpenseValues = z.infer<typeof expenseSchema>
+export type KeywordValues = z.infer<typeof keywordSchema>
+export type ExperimentValues = z.infer<typeof experimentSchema>

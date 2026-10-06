@@ -21,6 +21,7 @@ def with_indicators(metric: Metric) -> MetricOut:
         metric.comments,
         metric.shares,
         metric.reach,
+        metric.new_customers,
     )
     return data
 

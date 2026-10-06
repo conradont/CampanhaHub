@@ -33,13 +33,17 @@ import { CONTENT_TYPES, formatDate, money, number, percent, todayISO } from "@/l
 import { queryKeys } from "@/lib/query-keys"
 import {
   contentSchema,
+  experimentSchema,
   expenseSchema,
+  keywordSchema,
   metricSchema,
   type ContentValues,
+  type ExperimentValues,
   type ExpenseValues,
+  type KeywordValues,
   type MetricValues,
 } from "@/lib/schemas"
-import { campaignsApi, contentsApi, expensesApi, metricsApi } from "@/lib/services"
+import { campaignsApi, contentsApi, experimentsApi, expensesApi, keywordsApi, metricsApi } from "@/lib/services"
 
 function emptyMetric(campaignId: number): MetricValues {
   return {
@@ -52,6 +56,7 @@ function emptyMetric(campaignId: number): MetricValues {
     comments: 0,
     shares: 0,
     conversions: 0,
+    new_customers: 0,
     investment: 0,
   }
 }
@@ -64,7 +69,18 @@ function emptyContent(campaignId: number): ContentValues {
     scheduled_date: todayISO(),
     status: "planejado",
     notes: "",
+    owner: "",
+    approach: "",
+    estimated_cost: 0,
   }
+}
+
+function emptyKeyword(campaignId: number): KeywordValues {
+  return { campaign_id: campaignId, term: "", intent: "", target_url: "", notes: "" }
+}
+
+function emptyExperiment(campaignId: number): ExperimentValues {
+  return { campaign_id: campaignId, hypothesis: "", metric_name: "", status: "ideia", learning: "" }
 }
 
 function emptyExpense(campaignId: number): ExpenseValues {
@@ -85,7 +101,9 @@ export function CampaignDetailPage() {
   const [metricOpen, setMetricOpen] = useState(false)
   const [contentOpen, setContentOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
-  const [pendingDelete, setPendingDelete] = useState<{ kind: "metric" | "content" | "expense"; id: number; title: string } | null>(null)
+  const [keywordOpen, setKeywordOpen] = useState(false)
+  const [experimentOpen, setExperimentOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ kind: "metric" | "content" | "expense" | "keyword" | "experiment"; id: number; title: string } | null>(null)
 
   const metricForm = useForm<MetricValues>({
     resolver: zodResolver(metricSchema),
@@ -98,6 +116,14 @@ export function CampaignDetailPage() {
   const expenseForm = useForm<ExpenseValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: emptyExpense(campaignId),
+  })
+  const keywordForm = useForm<KeywordValues>({
+    resolver: zodResolver(keywordSchema),
+    defaultValues: emptyKeyword(campaignId),
+  })
+  const experimentForm = useForm<ExperimentValues>({
+    resolver: zodResolver(experimentSchema),
+    defaultValues: emptyExperiment(campaignId),
   })
 
   const { data: summary, isLoading } = useQuery({
@@ -120,12 +146,24 @@ export function CampaignDetailPage() {
     queryFn: () => expensesApi.list(campaignId),
     enabled: Number.isFinite(campaignId) && campaignId > 0,
   })
+  const { data: keywords = [] } = useQuery({
+    queryKey: queryKeys.keywords(campaignId),
+    queryFn: () => keywordsApi.list(campaignId),
+    enabled: Number.isFinite(campaignId) && campaignId > 0,
+  })
+  const { data: experiments = [] } = useQuery({
+    queryKey: queryKeys.experiments(campaignId),
+    queryFn: () => experimentsApi.list(campaignId),
+    enabled: Number.isFinite(campaignId) && campaignId > 0,
+  })
 
   function invalidateCampaign() {
     queryClient.invalidateQueries({ queryKey: queryKeys.campaignSummary(campaignId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.metrics(campaignId) })
     queryClient.invalidateQueries({ queryKey: queryKeys.contents({ campaign_id: campaignId }) })
     queryClient.invalidateQueries({ queryKey: queryKeys.expenses(campaignId) })
+    queryClient.invalidateQueries({ queryKey: queryKeys.keywords(campaignId) })
+    queryClient.invalidateQueries({ queryKey: queryKeys.experiments(campaignId) })
     queryClient.invalidateQueries({ queryKey: ["dashboard"] })
     queryClient.invalidateQueries({ queryKey: ["contents"] })
   }
@@ -160,22 +198,51 @@ export function CampaignDetailPage() {
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
+  const keywordMutation = useMutation({
+    mutationFn: keywordsApi.create,
+    onSuccess: () => {
+      invalidateCampaign()
+      toast.success("Palavra-chave registrada.")
+      setKeywordOpen(false)
+      keywordForm.reset(emptyKeyword(campaignId))
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
+  const experimentMutation = useMutation({
+    mutationFn: experimentsApi.create,
+    onSuccess: () => {
+      invalidateCampaign()
+      toast.success("Experimento registrado.")
+      setExperimentOpen(false)
+      experimentForm.reset(emptyExperiment(campaignId))
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  })
   const deleteMutation = useMutation({
-    mutationFn: async (item: { kind: "metric" | "content" | "expense"; id: number }) => {
+    mutationFn: async (item: { kind: "metric" | "content" | "expense" | "keyword" | "experiment"; id: number }) => {
       if (item.kind === "metric") await metricsApi.remove(item.id)
       else if (item.kind === "content") await contentsApi.remove(item.id)
+      else if (item.kind === "keyword") await keywordsApi.remove(item.id)
+      else if (item.kind === "experiment") await experimentsApi.remove(item.id)
       else await expensesApi.remove(item.id)
     },
     onSuccess: (_, item) => {
       invalidateCampaign()
-      toast.success(item.kind === "metric" ? "Métrica excluída." : item.kind === "content" ? "Conteúdo excluído." : "Investimento excluído.")
+      const labels = { metric: "Métrica excluída.", content: "Conteúdo excluído.", expense: "Investimento excluído.", keyword: "Palavra-chave excluída.", experiment: "Experimento excluído." }
+      toast.success(labels[item.kind])
       setPendingDelete(null)
     },
     onError: (error) => toast.error(getErrorMessage(error)),
   })
 
   if (isLoading || !summary) return <PageSkeleton />
-  const { campaign, totals, indicators } = summary
+  const { campaign, totals, indicators, goal } = summary
+  const goalLabels: Record<string, string> = {
+    alcance: "Alcance",
+    cliques: "Cliques",
+    conversoes: "Conversões",
+    novos_clientes: "Novos clientes",
+  }
 
   return (
     <div>
@@ -188,6 +255,7 @@ export function CampaignDetailPage() {
           <h1 className="font-serif text-4xl font-semibold tracking-tight text-fg">{campaign.name}</h1>
           <p className="mt-2 text-sm text-fg-muted">
             {campaign.client?.name} · {campaign.platform?.name} · {campaign.objective || "Sem objetivo informado"}
+            {goal.value > 0 && goal.metric ? ` · Meta de ${goalLabels[goal.metric] ?? goal.metric}: ${number(goal.actual)} de ${number(goal.value)}` : ""}
           </p>
         </div>
         <StatusBadge status={campaign.status} />
@@ -196,15 +264,17 @@ export function CampaignDetailPage() {
       <section className="mb-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard icon={Wallet} tone="data" glow label="Investido" value={money(totals.investment)} />
         <KpiCard icon={MousePointerClick} label="CPC" value={indicators.cpc !== null ? money(indicators.cpc) : "—"} />
+        <KpiCard icon={Target} label="CAC" value={indicators.cac !== null ? money(indicators.cac) : "—"} />
         <KpiCard icon={Percent} label="CTR" value={percent(indicators.ctr)} />
         <KpiCard icon={Target} tone="data" label="Conversão" value={percent(indicators.taxa_conversao)} />
       </section>
-      <section className="mb-6 grid gap-4 rounded-2xl border border-edge bg-surface px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mb-6 grid gap-4 rounded-2xl border border-edge bg-surface px-5 py-4 sm:grid-cols-2 lg:grid-cols-5">
         {[
           ["Orçamento usado", summary.budget_used_percent !== null ? `${summary.budget_used_percent}%` : "—"],
           ["Alcance", number(totals.reach)],
           ["Cliques", number(totals.clicks)],
           ["Conversões", number(totals.conversions)],
+          ["Novos clientes", number(totals.new_customers)],
         ].map(([label, value]) => (
           <div key={label}>
             <span className="eyebrow text-fg-muted">{label}</span>
@@ -218,6 +288,8 @@ export function CampaignDetailPage() {
           <TabsTrigger value="metricas">Métricas</TabsTrigger>
           <TabsTrigger value="conteudos">Conteúdos</TabsTrigger>
           <TabsTrigger value="despesas">Investimentos</TabsTrigger>
+          <TabsTrigger value="palavras">Palavras-chave</TabsTrigger>
+          <TabsTrigger value="experimentos">Experimentos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="metricas" className="rounded-2xl border border-edge bg-surface p-6">
@@ -262,6 +334,7 @@ export function CampaignDetailPage() {
                   <TableHead className="text-right">Impressões</TableHead>
                   <TableHead className="text-right">Cliques</TableHead>
                   <TableHead className="text-right">Conversões</TableHead>
+                  <TableHead className="text-right">Novos clientes</TableHead>
                   <TableHead className="text-right">Investimento</TableHead>
                   <TableHead className="text-right">CPC</TableHead>
                   <TableHead className="text-right">CTR</TableHead>
@@ -276,6 +349,7 @@ export function CampaignDetailPage() {
                     <TableCell className="text-right font-mono">{number(metric.impressions)}</TableCell>
                     <TableCell className="text-right font-mono">{number(metric.clicks)}</TableCell>
                     <TableCell className="text-right font-mono">{number(metric.conversions)}</TableCell>
+                    <TableCell className="text-right font-mono">{number(metric.new_customers)}</TableCell>
                     <TableCell className="text-right font-mono">{money(metric.investment)}</TableCell>
                     <TableCell className="text-right font-mono">{metric.indicators?.cpc != null ? money(metric.indicators.cpc) : "—"}</TableCell>
                     <TableCell className="text-right font-mono">{percent(metric.indicators?.ctr)}</TableCell>
@@ -348,7 +422,10 @@ export function CampaignDetailPage() {
                       <strong>{content.title}</strong>
                       {content.notes ? <p className="text-sm text-fg-muted">{content.notes}</p> : null}
                     </TableCell>
-                    <TableCell>{content.content_type}</TableCell>
+                    <TableCell>
+                      {content.content_type}
+                      {content.owner ? <p className="text-sm text-fg-muted">{content.owner}</p> : null}
+                    </TableCell>
                     <TableCell>{formatDate(content.scheduled_date)}</TableCell>
                     <TableCell>
                       <StatusBadge status={content.status} />
@@ -439,6 +516,100 @@ export function CampaignDetailPage() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="palavras" className="rounded-2xl border border-edge bg-surface p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <span className="eyebrow text-brand">SEO</span>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">Palavras-chave</h2>
+            </div>
+            {keywords.length > 0 ? (
+              <Button onClick={() => { keywordForm.reset(emptyKeyword(campaignId)); setKeywordOpen(true) }}>Nova palavra</Button>
+            ) : null}
+          </div>
+          {keywords.length === 0 ? (
+            <EmptyState
+              title="Nenhuma palavra-chave"
+              text="Registre termos que a campanha quer ser encontrada. Não há rastreamento automático."
+              action={<Button onClick={() => { keywordForm.reset(emptyKeyword(campaignId)); setKeywordOpen(true) }}>Nova palavra</Button>}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Termo</TableHead>
+                  <TableHead>Intenção</TableHead>
+                  <TableHead>Página</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {keywords.map((keyword) => (
+                  <TableRow key={keyword.id}>
+                    <TableCell>
+                      <strong>{keyword.term}</strong>
+                      {keyword.notes ? <p className="text-sm text-fg-muted">{keyword.notes}</p> : null}
+                    </TableCell>
+                    <TableCell>{keyword.intent || "—"}</TableCell>
+                    <TableCell>{keyword.target_url || "—"}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" aria-label="Excluir palavra-chave" onClick={() => setPendingDelete({ kind: "keyword", id: keyword.id, title: keyword.term })}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
+
+        <TabsContent value="experimentos" className="rounded-2xl border border-edge bg-surface p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <span className="eyebrow text-brand">Growth</span>
+              <h2 className="font-serif text-2xl font-semibold tracking-tight">Experimentos</h2>
+            </div>
+            {experiments.length > 0 ? (
+              <Button onClick={() => { experimentForm.reset(emptyExperiment(campaignId)); setExperimentOpen(true) }}>Novo experimento</Button>
+            ) : null}
+          </div>
+          {experiments.length === 0 ? (
+            <EmptyState
+              title="Nenhum experimento"
+              text="Anote uma hipótese, a métrica que vai observar e o que aprendeu."
+              action={<Button onClick={() => { experimentForm.reset(emptyExperiment(campaignId)); setExperimentOpen(true) }}>Novo experimento</Button>}
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hipótese</TableHead>
+                  <TableHead>Métrica</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {experiments.map((experiment) => (
+                  <TableRow key={experiment.id}>
+                    <TableCell>
+                      <strong>{experiment.hypothesis}</strong>
+                      {experiment.learning ? <p className="text-sm text-fg-muted">{experiment.learning}</p> : null}
+                    </TableCell>
+                    <TableCell>{experiment.metric_name || "—"}</TableCell>
+                    <TableCell><StatusBadge status={experiment.status} /></TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" aria-label="Excluir experimento" onClick={() => setPendingDelete({ kind: "experiment", id: experiment.id, title: experiment.hypothesis })}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </TabsContent>
       </Tabs>
 
       <Dialog open={metricOpen} onOpenChange={setMetricOpen}>
@@ -464,6 +635,9 @@ export function CampaignDetailPage() {
             </Field>
             <Field label="Conversões" error={metricForm.formState.errors.conversions?.message}>
               <Input type="number" min="0" {...metricForm.register("conversions", { valueAsNumber: true })} />
+            </Field>
+            <Field label="Novos clientes" error={metricForm.formState.errors.new_customers?.message}>
+              <Input type="number" min="0" {...metricForm.register("new_customers", { valueAsNumber: true })} />
             </Field>
             <Field label="Curtidas" error={metricForm.formState.errors.likes?.message}>
               <Input type="number" min="0" {...metricForm.register("likes", { valueAsNumber: true })} />
@@ -515,6 +689,15 @@ export function CampaignDetailPage() {
                 <option value="cancelado">Cancelado</option>
               </NativeSelect>
             </Field>
+            <Field label="Responsável" error={contentForm.formState.errors.owner?.message}>
+              <Input {...contentForm.register("owner")} />
+            </Field>
+            <Field label="Como executar" error={contentForm.formState.errors.approach?.message}>
+              <Textarea rows={2} {...contentForm.register("approach")} />
+            </Field>
+            <Field label="Custo estimado (R$)" error={contentForm.formState.errors.estimated_cost?.message}>
+              <Input type="number" min="0" step="0.01" {...contentForm.register("estimated_cost", { valueAsNumber: true })} />
+            </Field>
             <Field label="Observações" error={contentForm.formState.errors.notes?.message}>
               <Textarea rows={3} {...contentForm.register("notes")} />
             </Field>
@@ -565,24 +748,68 @@ export function CampaignDetailPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={keywordOpen} onOpenChange={setKeywordOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova palavra-chave</DialogTitle>
+          </DialogHeader>
+          <form id="keyword-form" className="grid gap-4" onSubmit={keywordForm.handleSubmit((values) => keywordMutation.mutate({ ...values, campaign_id: campaignId }))}>
+            <Field label="Termo" error={keywordForm.formState.errors.term?.message}>
+              <Input {...keywordForm.register("term")} />
+            </Field>
+            <Field label="Intenção" error={keywordForm.formState.errors.intent?.message}>
+              <Input {...keywordForm.register("intent")} />
+            </Field>
+            <Field label="Página de destino" error={keywordForm.formState.errors.target_url?.message}>
+              <Input {...keywordForm.register("target_url")} />
+            </Field>
+            <Field label="Notas" error={keywordForm.formState.errors.notes?.message}>
+              <Textarea rows={2} {...keywordForm.register("notes")} />
+            </Field>
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setKeywordOpen(false)}>Cancelar</Button>
+            <Button type="submit" form="keyword-form" disabled={keywordMutation.isPending}>{keywordMutation.isPending ? "Salvando…" : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={experimentOpen} onOpenChange={setExperimentOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Novo experimento</DialogTitle>
+          </DialogHeader>
+          <form id="experiment-form" className="grid gap-4" onSubmit={experimentForm.handleSubmit((values) => experimentMutation.mutate({ ...values, campaign_id: campaignId }))}>
+            <Field label="Hipótese" error={experimentForm.formState.errors.hypothesis?.message}>
+              <Textarea rows={3} {...experimentForm.register("hypothesis")} />
+            </Field>
+            <Field label="Métrica observada" error={experimentForm.formState.errors.metric_name?.message}>
+              <Input {...experimentForm.register("metric_name")} />
+            </Field>
+            <Field label="Status" error={experimentForm.formState.errors.status?.message}>
+              <NativeSelect {...experimentForm.register("status")}>
+                <option value="ideia">Ideia</option>
+                <option value="em_teste">Em teste</option>
+                <option value="aprendido">Aprendido</option>
+              </NativeSelect>
+            </Field>
+            <Field label="Aprendizado" error={experimentForm.formState.errors.learning?.message}>
+              <Textarea rows={2} {...experimentForm.register("learning")} />
+            </Field>
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setExperimentOpen(false)}>Cancelar</Button>
+            <Button type="submit" form="experiment-form" disabled={experimentMutation.isPending}>{experimentMutation.isPending ? "Salvando…" : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(next) => !next && setPendingDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pendingDelete?.kind === "metric"
-                ? "Excluir métrica?"
-                : pendingDelete?.kind === "content"
-                  ? "Excluir conteúdo?"
-                  : "Excluir investimento?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDelete
-                ? pendingDelete.kind === "metric"
-                  ? `O registro de ${pendingDelete.title} será excluído.`
-                  : pendingDelete.kind === "content"
-                    ? `O conteúdo “${pendingDelete.title}” será excluído.`
-                    : `O investimento “${pendingDelete.title}” será excluído.`
-                : null}
+              {pendingDelete ? `“${pendingDelete.title}” será excluído.` : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

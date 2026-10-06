@@ -7,15 +7,72 @@ Projeto de TCC de Engenharia de Software, implementado a partir do documento de 
 ## O que o sistema faz
 
 - Cadastro e autenticação de usuários
-- Gestão de clientes, plataformas e campanhas
-- Planejamento de conteúdos e calendário editorial
-- Registro manual de métricas e investimentos
-- Cálculo automático de **CPC**, **CTR**, **taxa de conversão**, CPM e engajamento
+- Clientes com diagnóstico da marca: posicionamento, persona, quatro segmentações e SWOT
+- Canais e campanhas, com objetivo, estratégia, meta numérica e referências
+- Calendário editorial com responsável, forma de execução e custo estimado
+- Registro manual de métricas, novos clientes e investimentos
+- Cálculo automático de **CPC**, **CAC**, **CTR**, taxa de conversão, CPM e engajamento
+- Funil de impressões, cliques e conversões no painel
+- Palavras-chave e experimentos dentro da campanha
 - Dashboard com gráficos
 - Relatórios com exportação CSV e impressão
-- Consulta de histórico de campanhas
+- Histórico de campanhas
 
 A primeira versão **não integra** Instagram, Facebook ou Google Ads: as métricas são inseridas manualmente, como definido no escopo do TCC.
+
+## Telas
+
+As imagens abaixo usam a conta de demonstração (`python -m app.seed`).
+
+### Entrar
+
+![Tela de login](docs/screenshots/login.png)
+
+### Painel
+
+Investimento, histórico, CPC, CAC e o funil (impressões, cliques e conversões).
+
+![Painel com CAC e funil](docs/screenshots/painel.png)
+
+### Clientes
+
+![Lista de clientes](docs/screenshots/clientes.png)
+
+O cadastro guarda o contexto da marca, a persona, o público e a SWOT.
+
+![Diagnóstico da marca no cliente](docs/screenshots/cliente-marca.png)
+
+### Campanhas
+
+![Fila de campanhas](docs/screenshots/campanhas.png)
+
+Na campanha, a meta numérica aparece no cabeçalho. CPC e CAC ficam lado a lado, e a tabela de métricas inclui novos clientes.
+
+![Detalhe da campanha Verão](docs/screenshots/campanha.png)
+
+Palavras-chave e experimentos são abas da própria campanha.
+
+![Aba de palavras-chave](docs/screenshots/palavras-chave.png)
+
+![Aba de experimentos](docs/screenshots/experimentos.png)
+
+### Calendário
+
+![Calendário editorial](docs/screenshots/calendario.png)
+
+Cada peça tem responsável, como executar e custo estimado.
+
+![Edição de uma peça do calendário](docs/screenshots/calendario-peca.png)
+
+### Canais
+
+![Canais de distribuição](docs/screenshots/canais.png)
+
+### Relatórios
+
+A tabela compara CPC e CAC e pode ser exportada em CSV ou impressa.
+
+![Relatórios com coluna de CAC](docs/screenshots/relatorios.png)
 
 ## Stack
 
@@ -128,15 +185,17 @@ pytest
 O sistema distingue **métrica** (dado observado), **indicador** (cálculo no back-end) e **visualização** (gráfico no painel).
 
 - **CPC** = investimento / cliques
+- **CAC** = investimento / novos clientes
 - **CTR** = (cliques / impressões) × 100
 - **Taxa de conversão** = (conversões / cliques) × 100
 
-O painel consome `GET /api/dashboard` com filtros de período, cliente, campanha e plataforma. O CTR de cada ponto da série é calculado no FastAPI; o React só desenha o resultado.
+O funil do painel reúne impressões, cliques e conversões do período. O painel consome `GET /api/dashboard` com filtros de período, cliente, campanha e plataforma. O CTR de cada ponto da série é calculado no FastAPI; o React só desenha o resultado.
 
 ## Estrutura
 
 ```
-backend/     API FastAPI
-frontend/    Interface React
-supabase/    config.toml e migrations (GitHub / CLI)
+backend/            API FastAPI
+frontend/           Interface React
+supabase/           config.toml e migrations (GitHub / CLI)
+docs/screenshots/   imagens usadas neste README
 ```

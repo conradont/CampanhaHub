@@ -4,6 +4,11 @@ def safe_div(numerator: float, denominator: float) -> float | None:
     return round(numerator / denominator, 4)
 
 
+def calc_cac(investimento: float, novos_clientes: int) -> float | None:
+    value = safe_div(investimento, novos_clientes)
+    return round(value, 4) if value is not None else None
+
+
 def calc_cpc(investimento: float, cliques: int) -> float | None:
     value = safe_div(investimento, cliques)
     return round(value, 4) if value is not None else None
@@ -38,9 +43,11 @@ def build_indicators(
     comentarios: int = 0,
     compartilhamentos: int = 0,
     alcance: int = 0,
+    novos_clientes: int = 0,
 ) -> dict:
     return {
         "cpc": calc_cpc(investimento, cliques),
+        "cac": calc_cac(investimento, novos_clientes),
         "ctr": calc_ctr(cliques, impressoes),
         "taxa_conversao": calc_taxa_conversao(conversoes, cliques),
         "cpm": calc_cpm(investimento, impressoes),

@@ -46,6 +46,7 @@ def _campaign_rows(
             "impressions": sum(m.impressions for m in metrics),
             "clicks": sum(m.clicks for m in metrics),
             "conversions": sum(m.conversions for m in metrics),
+            "new_customers": sum(m.new_customers for m in metrics),
             "investment": sum(m.investment for m in metrics) + sum(e.amount for e in expenses),
         }
         indicators = build_indicators(
@@ -53,6 +54,7 @@ def _campaign_rows(
             totals["clicks"],
             totals["impressions"],
             totals["conversions"],
+            novos_clientes=totals["new_customers"],
         )
         rows.append(
             {
@@ -116,7 +118,9 @@ def export_csv(
         "impressoes",
         "cliques",
         "conversoes",
+        "novos_clientes",
         "cpc",
+        "cac",
         "ctr",
         "taxa_conversao",
     ]
@@ -135,7 +139,9 @@ def export_csv(
             row["impressions"],
             row["clicks"],
             row["conversions"],
+            row["new_customers"],
             row["cpc"] if row["cpc"] is not None else "",
+            row["cac"] if row["cac"] is not None else "",
             row["ctr"] if row["ctr"] is not None else "",
             row["taxa_conversao"] if row["taxa_conversao"] is not None else "",
         ]

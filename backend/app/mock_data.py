@@ -5,7 +5,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.models import Campaign, Client, Content, Expense, Metric, Platform, User
+from app.models import Campaign, Client, Content, Expense, Experiment, Keyword, Metric, Platform, User
 from app.routers.auth import DEFAULT_PLATFORMS
 
 DEMO_EMAIL = "conrado@campanhahub.dev"
@@ -104,6 +104,16 @@ def load_mock_dataset(db: Session, user: User) -> MockSeedResult:
             name=spec["name"],
             segment=spec["segment"],
             description=f"Cliente mockado para testes — {spec['segment'].lower()}.",
+            positioning="Referência de bairro, atendimento próximo.",
+            swot_strengths="Clientela fiel e ponto conhecido.",
+            swot_weaknesses="Pouca presença digital.",
+            swot_opportunities="Busca local no celular.",
+            swot_threats="Concorrentes com entrega por aplicativo.",
+            audience_geo="Bairro e arredores.",
+            audience_demo="Adultos da classe média.",
+            audience_behavior="Pesquisam no celular antes de sair de casa.",
+            audience_psycho="Valorizam confiança e proximidade.",
+            persona="Ana, 38 anos, decide a compra da semana pelo celular.",
             contact_email=spec["contact_email"],
             contact_phone=spec["contact_phone"],
             status="ativo",
@@ -123,6 +133,10 @@ def load_mock_dataset(db: Session, user: User) -> MockSeedResult:
             name=spec["name"],
             objective=spec["objective"],
             description=f"Campanha mockada em {spec['platform']}.",
+            goal_metric="conversoes",
+            goal_value=40,
+            strategy="midia_paga" if spec["platform"] in {"Google Ads", "Facebook", "Instagram"} else "conteudo",
+            references="Cases de varejo local com oferta semanal.",
             start_date=start,
             end_date=end,
             budget=spec["budget"],
@@ -151,6 +165,7 @@ def load_mock_dataset(db: Session, user: User) -> MockSeedResult:
                     comments=max(conversions[index] // 2, 0),
                     shares=max(conversions[index] // 3, 0),
                     conversions=conversions[index],
+                    new_customers=max(conversions[index] // 4, 1 if conversions[index] else 0),
                     investment=investments[index],
                 )
             )
@@ -187,6 +202,9 @@ def load_mock_dataset(db: Session, user: User) -> MockSeedResult:
             scheduled_date=date.today(),
             status="publicado",
             notes="Peça mockada para o calendário.",
+            owner="Conrado",
+            approach="Publicar no feed com legenda curta e oferta do dia.",
+            estimated_cost=150,
         )
     )
     db.add(
@@ -197,6 +215,27 @@ def load_mock_dataset(db: Session, user: User) -> MockSeedResult:
             scheduled_date=date.today(),
             status="planejado",
             notes="Peça mockada para o calendário.",
+            owner="Ana",
+            approach="Gravar na oficina, 20 segundos, chamada para orçamento.",
+            estimated_cost=80,
+        )
+    )
+    db.add(
+        Keyword(
+            campaign_id=result.campaigns["Verão"],
+            term="revisão de freios perto de mim",
+            intent="Contratar o serviço",
+            target_url="https://oficinadobairro.dev/freios",
+            notes="Palavra de busca local.",
+        )
+    )
+    db.add(
+        Experiment(
+            campaign_id=result.campaigns["Black Friday"],
+            hypothesis="Um carrossel com preço na primeira arte gera mais cliques do que o criativo só com foto.",
+            metric_name="CTR",
+            status="em_teste",
+            learning="",
         )
     )
     db.flush()

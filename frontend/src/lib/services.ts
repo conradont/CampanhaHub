@@ -1,6 +1,6 @@
 import { api } from "@/lib/api"
-import type { Campaign, CampaignSummary, Client, Content, DashboardData, DashboardFilters, Expense, Metric, Platform, ReportData, User } from "@/types"
-import type { CampaignValues, ClientValues, ContentValues, ExpenseValues, LoginValues, MetricValues, PlatformValues, RegisterValues } from "@/lib/schemas"
+import type { Campaign, CampaignSummary, Client, Content, DashboardData, DashboardFilters, Experiment, Expense, Keyword, Metric, Platform, ReportData, User } from "@/types"
+import type { CampaignValues, ClientValues, ContentValues, ExperimentValues, ExpenseValues, KeywordValues, LoginValues, MetricValues, PlatformValues, RegisterValues } from "@/lib/schemas"
 
 export const authApi = {
   login: async (body: LoginValues) => (await api.post<{ access_token: string; user: User }>("/auth/login", body)).data,
@@ -56,6 +56,22 @@ export const metricsApi = {
   create: async (body: MetricValues) => (await api.post<Metric>("/metrics", body)).data,
   remove: async (id: number) => {
     await api.delete(`/metrics/${id}`)
+  },
+}
+
+export const keywordsApi = {
+  list: async (campaignId: number) => (await api.get<Keyword[]>("/keywords", { params: { campaign_id: campaignId } })).data,
+  create: async (body: KeywordValues) => (await api.post<Keyword>("/keywords", body)).data,
+  remove: async (id: number) => {
+    await api.delete(`/keywords/${id}`)
+  },
+}
+
+export const experimentsApi = {
+  list: async (campaignId: number) => (await api.get<Experiment[]>("/experiments", { params: { campaign_id: campaignId } })).data,
+  create: async (body: ExperimentValues) => (await api.post<Experiment>("/experiments", body)).data,
+  remove: async (id: number) => {
+    await api.delete(`/experiments/${id}`)
   },
 }
 

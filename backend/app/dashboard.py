@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.indicators import build_indicators, calc_cpc, calc_ctr
+from app.indicators import build_indicators, calc_cac, calc_cpc, calc_ctr
 from app.models import Campaign, Expense, Metric, User
 
 MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
@@ -74,12 +74,15 @@ def _snapshot(metrics: list[Metric], expenses: list[Expense]) -> dict:
     clicks = sum(metric.clicks for metric in metrics)
     conversions = sum(metric.conversions for metric in metrics)
     impressions = sum(metric.impressions for metric in metrics)
+    new_customers = sum(metric.new_customers for metric in metrics)
     return {
         "total_investment": investment,
         "total_clicks": clicks,
         "total_conversions": conversions,
+        "total_new_customers": new_customers,
         "average_ctr": calc_ctr(clicks, impressions),
         "average_cpc": calc_cpc(investment, clicks),
+        "average_cac": calc_cac(investment, new_customers),
     }
 
 
@@ -135,6 +138,7 @@ def build_dashboard(
         "comments": sum(metric.comments for metric in metrics),
         "shares": sum(metric.shares for metric in metrics),
         "conversions": sum(metric.conversions for metric in metrics),
+        "new_customers": sum(metric.new_customers for metric in metrics),
         "investment_metrics": sum(metric.investment for metric in metrics),
         "investment_expenses": sum(expense.amount for expense in expenses),
     }
@@ -148,6 +152,7 @@ def build_dashboard(
         totals["comments"],
         totals["shares"],
         totals["reach"],
+        totals["new_customers"],
     )
 
     by_platform: dict[str, dict] = defaultdict(
@@ -229,8 +234,10 @@ def build_dashboard(
         "total_investment": totals["investment"],
         "total_clicks": totals["clicks"],
         "total_conversions": totals["conversions"],
+        "total_new_customers": totals["new_customers"],
         "average_ctr": indicators["ctr"],
         "average_cpc": indicators["cpc"],
+        "average_cac": indicators["cac"],
     }
     overview = {
         "total_campaigns": len(campaigns),
@@ -256,6 +263,11 @@ def build_dashboard(
         "campaigns_draft": sum(1 for campaign in campaigns if campaign.status == "rascunho"),
         "totals": totals,
         "indicators": indicators,
+        "funnel": {
+            "impressions": totals["impressions"],
+            "clicks": totals["clicks"],
+            "conversions": totals["conversions"],
+        },
         "evolution": evolution,
         "by_platform": platform_rows,
         "by_campaign": campaign_rows,

@@ -35,6 +35,16 @@ class ClientCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     segment: str = ""
     description: str = ""
+    positioning: str = ""
+    swot_strengths: str = ""
+    swot_weaknesses: str = ""
+    swot_opportunities: str = ""
+    swot_threats: str = ""
+    audience_geo: str = ""
+    audience_demo: str = ""
+    audience_behavior: str = ""
+    audience_psycho: str = ""
+    persona: str = ""
     contact_email: str = ""
     contact_phone: str = ""
     status: str = "ativo"
@@ -45,6 +55,16 @@ class ClientOut(ORMModel):
     name: str
     segment: str
     description: str
+    positioning: str
+    swot_strengths: str
+    swot_weaknesses: str
+    swot_opportunities: str
+    swot_threats: str
+    audience_geo: str
+    audience_demo: str
+    audience_behavior: str
+    audience_psycho: str
+    persona: str
     contact_email: str
     contact_phone: str
     status: str
@@ -67,6 +87,10 @@ class CampaignCreate(BaseModel):
     name: str = Field(min_length=2, max_length=160)
     objective: str = ""
     description: str = ""
+    goal_metric: str = ""
+    goal_value: float = 0
+    strategy: str = ""
+    references: str = ""
     client_id: int
     platform_id: int
     start_date: date
@@ -80,6 +104,10 @@ class CampaignOut(ORMModel):
     name: str
     objective: str
     description: str
+    goal_metric: str
+    goal_value: float
+    strategy: str
+    references: str
     client_id: int
     platform_id: int
     start_date: date
@@ -98,6 +126,9 @@ class ContentCreate(BaseModel):
     scheduled_date: date
     status: str = "planejado"
     notes: str = ""
+    owner: str = ""
+    approach: str = ""
+    estimated_cost: float = 0
 
 
 class ContentOut(ORMModel):
@@ -108,6 +139,9 @@ class ContentOut(ORMModel):
     scheduled_date: date
     status: str
     notes: str
+    owner: str
+    approach: str
+    estimated_cost: float
     created_at: datetime
 
 
@@ -121,6 +155,7 @@ class MetricCreate(BaseModel):
     comments: int = 0
     shares: int = 0
     conversions: int = 0
+    new_customers: int = 0
     investment: float = 0
 
 
@@ -135,6 +170,7 @@ class MetricOut(ORMModel):
     comments: int
     shares: int
     conversions: int
+    new_customers: int
     investment: float
     created_at: datetime
     indicators: dict | None = None
@@ -155,4 +191,40 @@ class ExpenseOut(ORMModel):
     amount: float
     date: date
     category: str
+    created_at: datetime
+
+
+class KeywordCreate(BaseModel):
+    campaign_id: int
+    term: str = Field(min_length=2, max_length=160)
+    intent: str = ""
+    target_url: str = ""
+    notes: str = ""
+
+
+class KeywordOut(ORMModel):
+    id: int
+    campaign_id: int
+    term: str
+    intent: str
+    target_url: str
+    notes: str
+    created_at: datetime
+
+
+class ExperimentCreate(BaseModel):
+    campaign_id: int
+    hypothesis: str = Field(min_length=2)
+    metric_name: str = ""
+    status: str = "ideia"
+    learning: str = ""
+
+
+class ExperimentOut(ORMModel):
+    id: int
+    campaign_id: int
+    hypothesis: str
+    metric_name: str
+    status: str
+    learning: str
     created_at: datetime

@@ -41,6 +41,10 @@ function emptyCampaign(clientId = 0, platformId = 0): CampaignValues {
     name: "",
     objective: "",
     description: "",
+    goal_metric: "",
+    goal_value: 0,
+    strategy: "",
+    references: "",
     client_id: clientId,
     platform_id: platformId,
     start_date: todayISO(),
@@ -125,6 +129,10 @@ export function CampaignsPage() {
       name: campaign.name,
       objective: campaign.objective,
       description: campaign.description,
+      goal_metric: (campaign.goal_metric || "") as CampaignValues["goal_metric"],
+      goal_value: campaign.goal_value ?? 0,
+      strategy: (campaign.strategy || "") as CampaignValues["strategy"],
+      references: campaign.references ?? "",
       client_id: campaign.client_id,
       platform_id: campaign.platform_id,
       start_date: campaign.start_date,
@@ -271,7 +279,7 @@ export function CampaignsPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar campanha" : "Nova campanha"}</DialogTitle>
           </DialogHeader>
@@ -280,7 +288,29 @@ export function CampaignsPage() {
               <Input {...form.register("name")} />
             </Field>
             <Field label="Objetivo" error={form.formState.errors.objective?.message}>
-              <Input {...form.register("objective")} />
+              <Input placeholder="Ex.: gerar vendas" {...form.register("objective")} />
+            </Field>
+            <Field label="Estratégia" error={form.formState.errors.strategy?.message}>
+              <NativeSelect {...form.register("strategy")}>
+                <option value="">Não definida</option>
+                <option value="conteudo">Conteúdo</option>
+                <option value="influenciadores">Influenciadores</option>
+                <option value="seo">SEO</option>
+                <option value="midia_paga">Mídia paga</option>
+                <option value="email">E-mail marketing</option>
+              </NativeSelect>
+            </Field>
+            <Field label="Meta" error={form.formState.errors.goal_metric?.message}>
+              <NativeSelect {...form.register("goal_metric")}>
+                <option value="">Sem meta numérica</option>
+                <option value="alcance">Alcance</option>
+                <option value="cliques">Cliques</option>
+                <option value="conversoes">Conversões</option>
+                <option value="novos_clientes">Novos clientes</option>
+              </NativeSelect>
+            </Field>
+            <Field label="Valor da meta" error={form.formState.errors.goal_value?.message}>
+              <Input type="number" min="0" step="1" {...form.register("goal_value", { valueAsNumber: true })} />
             </Field>
             <Field label="Cliente" error={form.formState.errors.client_id?.message}>
               <NativeSelect {...form.register("client_id", { valueAsNumber: true })}>
@@ -320,6 +350,11 @@ export function CampaignsPage() {
             <div className="sm:col-span-2">
               <Field label="Descrição" error={form.formState.errors.description?.message}>
                 <Textarea rows={3} {...form.register("description")} />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Referências e inspirações" error={form.formState.errors.references?.message}>
+                <Textarea rows={2} {...form.register("references")} />
               </Field>
             </div>
           </form>

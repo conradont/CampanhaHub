@@ -9,6 +9,16 @@ export type Client = {
   name: string
   segment: string
   description: string
+  positioning: string
+  swot_strengths: string
+  swot_weaknesses: string
+  swot_opportunities: string
+  swot_threats: string
+  audience_geo: string
+  audience_demo: string
+  audience_behavior: string
+  audience_psycho: string
+  persona: string
   contact_email: string
   contact_phone: string
   status: string
@@ -26,6 +36,10 @@ export type Campaign = {
   name: string
   objective: string
   description: string
+  goal_metric: string
+  goal_value: number
+  strategy: string
+  references: string
   client_id: number
   platform_id: number
   start_date: string
@@ -45,10 +59,14 @@ export type Content = {
   scheduled_date: string
   status: string
   notes: string
+  owner: string
+  approach: string
+  estimated_cost: number
 }
 
 export type Indicators = {
   cpc: number | null
+  cac: number | null
   ctr: number | null
   taxa_conversao: number | null
   cpm: number | null
@@ -66,6 +84,7 @@ export type Metric = {
   comments: number
   shares: number
   conversions: number
+  new_customers: number
   investment: number
   indicators?: Indicators
 }
@@ -79,6 +98,24 @@ export type Expense = {
   category: string
 }
 
+export type Keyword = {
+  id: number
+  campaign_id: number
+  term: string
+  intent: string
+  target_url: string
+  notes: string
+}
+
+export type Experiment = {
+  id: number
+  campaign_id: number
+  hypothesis: string
+  metric_name: string
+  status: string
+  learning: string
+}
+
 export type CampaignSummary = {
   campaign: Campaign
   totals: {
@@ -86,10 +123,17 @@ export type CampaignSummary = {
     impressions: number
     clicks: number
     conversions: number
+    new_customers: number
     investment: number
     budget: number
   }
   indicators: Indicators
+  goal: {
+    metric: string
+    value: number
+    actual: number
+    progress_percent: number | null
+  }
   budget_used_percent: number | null
 }
 
@@ -148,15 +192,24 @@ export type DashboardData = {
     total_investment: number
     total_conversions: number
     total_clicks: number
+    total_new_customers: number
     average_ctr: number | null
     average_cpc: number | null
+    average_cac: number | null
     comparison: {
       total_investment: { previous: number; delta_percent: number | null }
       total_clicks: { previous: number; delta_percent: number | null }
       total_conversions: { previous: number; delta_percent: number | null }
+      total_new_customers: { previous: number; delta_percent: number | null }
       average_ctr: { previous: number | null; delta_percent: number | null }
       average_cpc: { previous: number | null; delta_percent: number | null }
+      average_cac: { previous: number | null; delta_percent: number | null }
     } | null
+  }
+  funnel: {
+    impressions: number
+    clicks: number
+    conversions: number
   }
   campaigns_total: number
   campaigns_active: number
@@ -190,7 +243,9 @@ export type ReportRow = {
   impressions: number
   clicks: number
   conversions: number
+  new_customers: number
   cpc: number | null
+  cac: number | null
   ctr: number | null
   taxa_conversao: number | null
 }

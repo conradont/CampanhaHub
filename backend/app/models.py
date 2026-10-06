@@ -34,6 +34,16 @@ class Client(Base):
     name: Mapped[str] = mapped_column(String(160))
     segment: Mapped[str] = mapped_column(String(120), default="")
     description: Mapped[str] = mapped_column(Text, default="")
+    positioning: Mapped[str] = mapped_column(Text, default="")
+    swot_strengths: Mapped[str] = mapped_column(Text, default="")
+    swot_weaknesses: Mapped[str] = mapped_column(Text, default="")
+    swot_opportunities: Mapped[str] = mapped_column(Text, default="")
+    swot_threats: Mapped[str] = mapped_column(Text, default="")
+    audience_geo: Mapped[str] = mapped_column(Text, default="")
+    audience_demo: Mapped[str] = mapped_column(Text, default="")
+    audience_behavior: Mapped[str] = mapped_column(Text, default="")
+    audience_psycho: Mapped[str] = mapped_column(Text, default="")
+    persona: Mapped[str] = mapped_column(Text, default="")
     contact_email: Mapped[str] = mapped_column(String(180), default="")
     contact_phone: Mapped[str] = mapped_column(String(40), default="")
     status: Mapped[str] = mapped_column(String(20), default="ativo")
@@ -67,6 +77,10 @@ class Campaign(Base):
     name: Mapped[str] = mapped_column(String(160))
     objective: Mapped[str] = mapped_column(String(160), default="")
     description: Mapped[str] = mapped_column(Text, default="")
+    goal_metric: Mapped[str] = mapped_column(String(40), default="")
+    goal_value: Mapped[float] = mapped_column(Float, default=0)
+    strategy: Mapped[str] = mapped_column(String(40), default="")
+    references: Mapped[str] = mapped_column("reference_notes", Text, default="")
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     budget: Mapped[float] = mapped_column(Float, default=0)
@@ -79,6 +93,8 @@ class Campaign(Base):
     contents: Mapped[list["Content"]] = relationship(back_populates="campaign", cascade="all, delete-orphan")
     metrics: Mapped[list["Metric"]] = relationship(back_populates="campaign", cascade="all, delete-orphan")
     expenses: Mapped[list["Expense"]] = relationship(back_populates="campaign", cascade="all, delete-orphan")
+    keywords: Mapped[list["Keyword"]] = relationship(back_populates="campaign", cascade="all, delete-orphan")
+    experiments: Mapped[list["Experiment"]] = relationship(back_populates="campaign", cascade="all, delete-orphan")
 
 
 class Content(Base):
@@ -91,6 +107,9 @@ class Content(Base):
     scheduled_date: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20), default="planejado")
     notes: Mapped[str] = mapped_column(Text, default="")
+    owner: Mapped[str] = mapped_column(String(120), default="")
+    approach: Mapped[str] = mapped_column(Text, default="")
+    estimated_cost: Mapped[float] = mapped_column(Float, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     campaign: Mapped["Campaign"] = relationship(back_populates="contents")
@@ -109,6 +128,7 @@ class Metric(Base):
     comments: Mapped[int] = mapped_column(Integer, default=0)
     shares: Mapped[int] = mapped_column(Integer, default=0)
     conversions: Mapped[int] = mapped_column(Integer, default=0)
+    new_customers: Mapped[int] = mapped_column(Integer, default=0)
     investment: Mapped[float] = mapped_column(Float, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -127,3 +147,31 @@ class Expense(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     campaign: Mapped["Campaign"] = relationship(back_populates="expenses")
+
+
+class Keyword(Base):
+    __tablename__ = "keywords"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), index=True)
+    term: Mapped[str] = mapped_column(String(160))
+    intent: Mapped[str] = mapped_column(String(160), default="")
+    target_url: Mapped[str] = mapped_column(String(300), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    campaign: Mapped["Campaign"] = relationship(back_populates="keywords")
+
+
+class Experiment(Base):
+    __tablename__ = "experiments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    campaign_id: Mapped[int] = mapped_column(ForeignKey("campaigns.id"), index=True)
+    hypothesis: Mapped[str] = mapped_column(Text)
+    metric_name: Mapped[str] = mapped_column(String(80), default="")
+    status: Mapped[str] = mapped_column(String(20), default="ideia")
+    learning: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    campaign: Mapped["Campaign"] = relationship(back_populates="experiments")

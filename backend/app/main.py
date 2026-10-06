@@ -3,14 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, engine, ensure_columns
 from app.rate_limit import BrowseRateLimitMiddleware, limiter, rate_limit_handler
-from app.routers import auth, campaigns, clients, contents, dashboard, expenses, metrics, platforms, reports
+from app.routers import auth, campaigns, clients, contents, dashboard, expenses, experiments, keywords, metrics, platforms, reports
 
 
 def init_db() -> None:
     try:
         Base.metadata.create_all(bind=engine)
+        ensure_columns()
     except Exception as exc:
         raise SystemExit(
             "Falha ao conectar no Postgres. No backend/.env, preencha DATABASE_PASSWORD "
@@ -46,6 +47,8 @@ app.include_router(campaigns.router)
 app.include_router(contents.router)
 app.include_router(metrics.router)
 app.include_router(expenses.router)
+app.include_router(keywords.router)
+app.include_router(experiments.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
 

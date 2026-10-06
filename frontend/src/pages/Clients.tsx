@@ -36,6 +36,16 @@ const emptyClient: ClientValues = {
   name: "",
   segment: "",
   description: "",
+  positioning: "",
+  swot_strengths: "",
+  swot_weaknesses: "",
+  swot_opportunities: "",
+  swot_threats: "",
+  audience_geo: "",
+  audience_demo: "",
+  audience_behavior: "",
+  audience_psycho: "",
+  persona: "",
   contact_email: "",
   contact_phone: "",
   status: "ativo",
@@ -99,6 +109,16 @@ export function ClientsPage() {
       name: client.name,
       segment: client.segment,
       description: client.description,
+      positioning: client.positioning ?? "",
+      swot_strengths: client.swot_strengths ?? "",
+      swot_weaknesses: client.swot_weaknesses ?? "",
+      swot_opportunities: client.swot_opportunities ?? "",
+      swot_threats: client.swot_threats ?? "",
+      audience_geo: client.audience_geo ?? "",
+      audience_demo: client.audience_demo ?? "",
+      audience_behavior: client.audience_behavior ?? "",
+      audience_psycho: client.audience_psycho ?? "",
+      persona: client.persona ?? "",
       contact_email: client.contact_email,
       contact_phone: client.contact_phone,
       status: client.status === "inativo" ? "inativo" : "ativo",
@@ -190,7 +210,7 @@ export function ClientsPage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle>
           </DialogHeader>
@@ -213,8 +233,40 @@ export function ClientsPage() {
                 <option value="inativo">Inativo</option>
               </NativeSelect>
             </Field>
-            <Field label="Descrição" error={form.formState.errors.description?.message}>
+            <Field label="Contexto da marca" error={form.formState.errors.description?.message}>
               <Textarea rows={3} {...form.register("description")} />
+            </Field>
+            <Field label="Posicionamento" error={form.formState.errors.positioning?.message}>
+              <Textarea rows={2} placeholder="Como o cliente deve perceber a marca" {...form.register("positioning")} />
+            </Field>
+            <Field label="Persona" error={form.formState.errors.persona?.message}>
+              <Textarea rows={2} placeholder="Quem decide, qual a dor e o desejo" {...form.register("persona")} />
+            </Field>
+            <p className="text-sm font-medium text-fg">Público-alvo</p>
+            <Field label="Geográfica" error={form.formState.errors.audience_geo?.message}>
+              <Input {...form.register("audience_geo")} />
+            </Field>
+            <Field label="Demográfica" error={form.formState.errors.audience_demo?.message}>
+              <Input {...form.register("audience_demo")} />
+            </Field>
+            <Field label="Comportamental" error={form.formState.errors.audience_behavior?.message}>
+              <Input {...form.register("audience_behavior")} />
+            </Field>
+            <Field label="Psicográfica" error={form.formState.errors.audience_psycho?.message}>
+              <Input {...form.register("audience_psycho")} />
+            </Field>
+            <p className="text-sm font-medium text-fg">SWOT</p>
+            <Field label="Forças" error={form.formState.errors.swot_strengths?.message}>
+              <Textarea rows={2} {...form.register("swot_strengths")} />
+            </Field>
+            <Field label="Fraquezas" error={form.formState.errors.swot_weaknesses?.message}>
+              <Textarea rows={2} {...form.register("swot_weaknesses")} />
+            </Field>
+            <Field label="Oportunidades" error={form.formState.errors.swot_opportunities?.message}>
+              <Textarea rows={2} {...form.register("swot_opportunities")} />
+            </Field>
+            <Field label="Ameaças" error={form.formState.errors.swot_threats?.message}>
+              <Textarea rows={2} {...form.register("swot_threats")} />
             </Field>
           </form>
           <DialogFooter>
