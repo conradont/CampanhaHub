@@ -164,6 +164,8 @@ Depois suba a API normalmente. O cadastro continua salvando só o hash da senha;
 
 ## Docker (PostgreSQL)
 
+Antes de iniciar, copie `.env.example` para `.env` na raiz do repositório e preencha `SECRET_KEY` com uma chave aleatória gerada pelo comando indicado no arquivo. Não compartilhe nem versione `.env`; a API rejeita chaves ausentes, menores que 43 caracteres ou valores de exemplo. Ao executar a API diretamente, configure `SECRET_KEY` também em `backend/.env`. As portas do frontend e da API ficam acessíveis apenas pela máquina local.
+
 ```bash
 docker compose up --build
 ```

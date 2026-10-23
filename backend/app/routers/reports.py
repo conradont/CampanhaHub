@@ -1,3 +1,4 @@
+import csv
 from datetime import date
 from io import StringIO
 
@@ -13,6 +14,12 @@ from app.models import Campaign, Expense, Metric, User
 from app.rate_limit import limiter
 
 router = APIRouter(prefix="/api/reports", tags=["Relatórios"])
+
+
+def _safe_csv_value(value):
+    if isinstance(value, str) and value.lstrip(" \t\r\n").startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
 
 
 def _campaign_rows(
@@ -104,7 +111,8 @@ def export_csv(
     current_user: User = Depends(get_current_user),
 ):
     rows = _campaign_rows(db, current_user.id, client_id, status, start, end)
-    output = StringIO()
+    output = StringIO(newline="")
+    writer = csv.writer(output, delimiter=";", lineterminator="\n")
     headers = [
         "campanha",
         "cliente",
@@ -124,7 +132,7 @@ def export_csv(
         "ctr",
         "taxa_conversao",
     ]
-    output.write(";".join(headers) + "\n")
+    writer.writerow(headers)
     for row in rows:
         values = [
             row["name"],
@@ -145,7 +153,7 @@ def export_csv(
             row["ctr"] if row["ctr"] is not None else "",
             row["taxa_conversao"] if row["taxa_conversao"] is not None else "",
         ]
-        output.write(";".join(str(v) for v in values) + "\n")
+        writer.writerow([_safe_csv_value(value) for value in values])
     output.seek(0)
     return StreamingResponse(
         output,

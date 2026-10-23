@@ -1,5 +1,6 @@
 from urllib.parse import quote_plus
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     app_name: str = "CampanhaHub"
-    secret_key: str = "campanhahub-dev-secret-altere-em-producao"
+    secret_key: str
     access_token_expire_minutes: int = 60 * 12
     algorithm: str = "HS256"
     database_url: str = "sqlite:///./campanhahub.db"
@@ -30,6 +31,20 @@ class Settings(BaseSettings):
     rate_limit_register_ip: str = "30/minute"
     # Exportação pesa mais que listar.
     rate_limit_export: str = "30/minute"
+
+    @field_validator("secret_key")
+    @classmethod
+    def validate_secret_key(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 43:
+            raise ValueError("SECRET_KEY deve ter pelo menos 43 caracteres")
+        if value in {
+            "altere-esta-chave-em-producao",
+            "campanhahub-dev-secret-altere-em-producao",
+            "gere-uma-chave-longa-e-aleatoria",
+        }:
+            raise ValueError("SECRET_KEY não pode ser um valor de exemplo")
+        return value
 
     @property
     def sqlalchemy_database_url(self) -> str:

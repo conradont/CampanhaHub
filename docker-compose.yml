@@ -18,10 +18,10 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://campanhahub:campanhahub@db:5432/campanhahub
       CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
-      SECRET_KEY: altere-esta-chave-em-producao
+      SECRET_KEY: ${SECRET_KEY:?Configure uma SECRET_KEY aleatória com pelo menos 43 caracteres no arquivo .env}
       RATE_LIMIT_ENABLED: "true"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -29,7 +29,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:80"
     depends_on:
       - backend
 
