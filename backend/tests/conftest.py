@@ -1,6 +1,9 @@
 import os
 
 os.environ["DATABASE_URL"] = "sqlite:///./test_campanhahub.db"
+# Impede que um .env com PostgreSQL/Supabase seja usado nos testes.
+os.environ["DATABASE_HOST"] = ""
+os.environ["DATABASE_PASSWORD"] = ""
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import pytest

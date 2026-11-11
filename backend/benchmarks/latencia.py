@@ -13,6 +13,9 @@ import time
 TMP = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{TMP}/bench.db"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
+# Impede que um .env com PostgreSQL/Supabase seja usado na medicao.
+os.environ["DATABASE_HOST"] = ""
+os.environ["DATABASE_PASSWORD"] = ""
 sys.path.insert(0, os.getcwd())
 
 from fastapi.testclient import TestClient  # noqa: E402
